@@ -5,7 +5,7 @@ next decision. No private chain-of-thought, no secrets, no tokens, no private
 URLs, no in-round answer payloads.
 
 Budget: 10–15 meaningful coding-agent iterations across Weeks 3–4.
-Used so far: **6**.
+Used so far: **7** (entry 007 is one Week 4 session).
 
 ---
 
@@ -173,3 +173,52 @@ Used so far: **6**.
   commit, play a two-browser round, and record the real output, screenshots and
   commit hash in `docs/EVIDENCE_003.md`. Do not fix anything before the baseline
   is captured.
+
+---
+
+## 007 — Week 4 takeover: Spec Kit, single-player, AI check and hints (Claude Code, 2026-09-30)
+
+- **Phase:** clarify → spec → plan → tasks → implementation of features 001 and 002.
+- **Reason:** owner asked to keep the design, drop accounts and multiplayer (Vercel cannot host
+  them), make the game single-player with AI-checked answers, examples and hint credits, and
+  follow the Week 4 reliability materials and Spec Kit.
+- **Expected:** constitution, two specs, plans, contracts, tasks; a green `npm run verify`
+  with the full fake-provider matrix; no live call before the owner adds a key.
+- **Actual:** Spec Kit installed (`specify` 1.0.14 via uv). Owner answered three clarifications
+  (26 letters; 3 credits, full points; descriptive hints) and later added examples for misses
+  and lite-only models. `npm run verify`: 22 files, **363 tests passed**, build OK. Five design
+  findings made during implementation are recorded in `docs/EVIDENCE_W04.md`. Live calls: 0.
+- **Next decision:** owner puts `GEMINI_API_KEY` in `.env`; run L1-L3 within budget and record
+  below; if L2 misses a threshold, report before changing model or prompt.
+
+## Week 4 — provider calls
+
+Live Gemini calls only (fake-provider tests are not listed). Budget: ≤ 20 in development,
+≤ 5 in the demo. Record: date, commit, command, model, calls, outcome, latency, tokens.
+
+| Date | Commit | Command | Model | Calls | Outcome | p95 latency | Tokens | Notes |
+| --- | --- | --- | --- | --- | --- | --- | --- | --- |
+| 2026-09-30 | uncommitted | browser game (hint) | gemini-3.5-flash-lite | 1 | success | 927 ms | 628 | |
+| 2026-09-30 | uncommitted | browser game (hint) | gemini-3.5-flash-lite | 1 | invalid_output:semantic (leak) | 1068 ms | — | credit not spent |
+| 2026-09-30 | uncommitted | browser game (round L) | gemini-3.5-flash-lite | 1 | success | 1628 ms | 1287 | |
+| 2026-09-30 | uncommitted | browser game (round N) | gemini-3.5-flash-lite | 1 | success, 2 examples dropped | 2051 ms | 1550 | led to check-round.v2 |
+
+| 2026-09-30 | uncommitted | browser game (hint K/Reka) | gemini-3.5-flash-lite | 2 | timeout ×2 (5.0 s, 3.9 s), fallback never reached | 9.0 s | — | credit not spent |
+| 2026-09-30 | uncommitted | browser game (hint) | gemini-3.5-flash-lite | 2 | timeout ×2 | 9.0 s | — | credit not spent |
+| 2026-09-30 | uncommitted | browser game (round) | gemini-3.5-flash-lite | 2 | timeout ×2 (8.0 s, 8.0 s) | 16.3 s | — | scored locally, "nije provereno" |
+| 2026-09-30 | uncommitted | diagnostic: "reply ok", 30 s timeout | gemini-3.5-flash-lite | 1 | success but **13 652 ms**, 0 thought tokens | 13.7 s | — | Google-side slowness of this model |
+| 2026-09-30 | uncommitted | diagnostic: "reply ok", 30 s timeout | gemini-3.1-flash-lite | 1 | success | 1.9 s | — | fallback model healthy |
+
+Finding: retrying a timed-out model spent the whole deadline, so the healthy fallback never ran.
+Changed: a timeout now moves straight to the next model (research R5, `classify.ts`).
+
+| 2026-09-30 | uncommitted | `smoke:live -- capability gemini-3.6-flash` (default thinking) | gemini-3.6-flash | 1 | timeout (6 s) | 6.0 s | — | |
+| 2026-09-30 | uncommitted | diagnostic "ok", 30 s | gemini-3.6-flash | 1 | success, 75 thought tokens | 3.1 s | — | thinks by default |
+| 2026-09-30 | uncommitted | diagnostic "ok", 30 s | gemini-3.5-flash | 1 | success, 67 thought tokens | 16.8 s | — | 3.5 family slow tonight |
+| 2026-09-30 | uncommitted | diagnostic "ok", `thinkingLevel: minimal` | gemini-3.6-flash | 1 | success, 0 thought tokens | 0.96 s | — | minimal accepted |
+| 2026-09-30 | uncommitted | `smoke:live -- capability gemini-3.6-flash` (minimal) | gemini-3.6-flash | 1 | **pass**, 8/8 verdicts | 2.5 s | 1345 | added to chain |
+| 2026-09-30 | uncommitted | `smoke:live -- capability gemini-3.5-flash` (minimal) | gemini-3.5-flash | 1 | timeout (6 s) | 6.0 s | — | held back from chain |
+
+Running total: **18 / 20**. The remaining budget is reserved; L2/L3 need a new budget decision
+from the owner. (only calls whose telemetry the owner shared; any other calls from the
+same session are not counted here).

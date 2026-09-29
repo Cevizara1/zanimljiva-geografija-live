@@ -1,65 +1,89 @@
-# Zanimljiva Geografija Live
+# Zanimljiva Geografija
 
-A two-player, two-computer online round of the Serbian pen-and-paper game
-*Zanimljiva geografija*. One player creates a room, the other joins with a
-six-character code, and the server deals both of them the same random letter at
-the same moment — so neither gets a head start.
+A single-player browser version of the Serbian pen-and-paper game. Press **Nova igra**
+and play five rounds: each round reveals a letter, and you have 150 seconds to write one term
+per category — Država, Grad, Reka, Planina, More, Životinja, Biljka, Predmet. When the round
+ends, an AI model checks that your terms really exist, and shows an example for every category
+you missed. You get three hint credits per game for when you are stuck.
 
-Built for Week 3 of the Serbian AI Bootcamp.
+No accounts, no sign-in, no opponents. Built with TypeScript end to end: a React + Vite client
+and stateless Node.js functions under `/api`, ready for Vercel.
 
-## Status
+## Run it locally
 
-Scaffold and required documents are in place. Gameplay is not implemented yet.
-Progress follows the numbered steps in
-[.github/instructions/10-implementation-order.instructions.md](.github/instructions/10-implementation-order.instructions.md).
+Requirements: Node.js 22 or newer, npm.
 
-## How it plays
+```bash
+cp .env.example .env         # then put your key on the GEMINI_API_KEY= line
+npm install
+npm run dev                  # http://localhost:5173 — the game and its /api in one process
+```
 
-1. Player 1 enters a name and creates a room; a six-character code appears.
-2. Player 2 enters a name and joins with that code.
-3. Once both game screens have loaded, the server picks one letter from
-   `A B D K M S V` and schedules a shared 3-second countdown.
-4. Both players privately fill six categories — Država, Grad, Reka, Planina,
-   Biljka, Životinja — for 90 seconds.
-5. The round ends when both press **Finished** or the server deadline passes.
-6. Answers are revealed together and scored: two different valid answers 10 each,
-   the same answer 5 each, only one valid answer 10 and 0, neither 0 and 0.
+The only value you must set is `GEMINI_API_KEY`: a free key from
+<https://aistudio.google.com/apikey>. Create it in a Google project **without billing
+enabled**, so an exhausted free quota can never cost money. Without a key the game still
+works — rounds are scored by the starting letter only and marked *nije provereno*, and hints
+are shown as unavailable.
 
-Answers are checked only for the starting letter. Players are responsible for
-semantic correctness.
+## Deploy to Vercel
 
-## Requirements
-
-Node.js 20 or 22, npm.
+1. Import the repository into Vercel. `vercel.json` sets the build command, the output
+   directory (`dist/client`) and the function time limit; no other setting is needed.
+2. In Project → Settings → Environment Variables, add `GEMINI_API_KEY`.
+3. Deploy. `GET /api/health` answers `{"status":"ok","ai":"configured"}` when the key is set.
 
 ## Commands
 
-```bash
-npm install
-npm run dev        # Vite client on :5173, game server on :3000
-npm test           # Vitest, once
-npm run typecheck
-npm run lint
-npm run build      # dist/client + dist/server
-npm start          # serve the built SPA, /healthz and Socket.IO from one origin
-npm run verify     # typecheck + lint + test + build — the gate before any handoff
+| Command | What it does |
+| --- | --- |
+| `npm run dev` | Vite dev server with the `/api` functions (no Vercel CLI needed) |
+| `npm test` | All tests, offline — the AI provider is always a fake |
+| `npm run typecheck` / `npm run lint` | TypeScript and ESLint |
+| `npm run build` / `npm run preview` | Production client build, and a local preview of it |
+| `npm run verify` | typecheck + lint + test + build — the gate before any handoff |
+| `npm run smoke:live -- capability\|eval\|hints` | Opt-in, budgeted calls to the real Gemini API |
+
+**Seeing what the model answers.** Put `AI_DEBUG_LOG=1` in `.env` and restart `npm run dev`:
+every AI attempt then prints to that terminal what was sent (letter and answers) and the
+model's raw reply. Never the key; never in the browser; ignored on Vercel. Remove the line
+when you are done. Without it, the terminal shows one privacy-safe `ai.interaction` line per
+request (attempts, model, latency, tokens, validation counts).
+
+## How the AI part works
+
+```text
+Browser ── POST /api/check-round ──▶ Vercel function ──▶ Gemini (generateContent)
+        ◀── verdicts + examples ───   validate → rate limit → one bounded AI request
+                                      → parse → schema → semantic rules → safe response
 ```
 
-Copy `.env.example` to `.env` for local overrides. Never commit `.env`.
+- One AI request per round (check + examples), plus one per spent hint — at most 8 per game.
+- Models: `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-3.6-flash`. A model that
+  times out, errors or runs out of its daily quota is skipped by the next requests (quota: until
+  the daily reset, ~9h in Serbia). When every model is out of quota the game says so. Per-attempt
+  timeout, one shared deadline, at most two attempts per model, never two models at once.
+- The starting-letter rule and the points are decided by code; the AI only says whether a
+  term exists and belongs to its category.
+- Details: [AI provider contract](specs/002-ai-answer-check-and-hints/contracts/ai-provider-contract.md),
+  [HTTP API](specs/002-ai-answer-check-and-hints/contracts/http-api.md),
+  [evidence](docs/EVIDENCE_W04.md).
 
 ## Documentation
 
 | File | What it holds |
 | --- | --- |
-| [docs/GAME_SPEC.md](docs/GAME_SPEC.md) | Authoritative game behavior (frozen) |
-| [Plan.md](Plan.md) | Architecture, sequencing, ownership, risks |
-| [docs/EVALS.md](docs/EVALS.md) | Evaluations, written before the code |
-| [docs/CONTEXT_MANIFEST.md](docs/CONTEXT_MANIFEST.md) | What context was used, and what was excluded |
-| [docs/AI_USAGE_LOG.md](docs/AI_USAGE_LOG.md) | Every meaningful AI call |
-| [AGENTS.md](AGENTS.md) | Entry point for coding agents |
+| [docs/GAME_SPEC.md](docs/GAME_SPEC.md) | The rulebook: letters, categories, what is accepted, hints |
+| [.specify/memory/constitution.md](.specify/memory/constitution.md) | Engineering principles |
+| [specs/001-singleplayer-vercel](specs/001-singleplayer-vercel/) | Single-player game on Vercel: spec, plan, tasks |
+| [specs/002-ai-answer-check-and-hints](specs/002-ai-answer-check-and-hints/) | AI check and hints: spec, plan, contracts, tasks |
+| [docs/README.md](docs/README.md) | Where each Week 4 artifact lives |
+| [docs/archive/w03/](docs/archive/w03/) | The Week 3 two-player version's plan and rules |
 
 ## Known limitations
 
-Rooms live in memory in a single process: a server restart ends active rooms.
-There is no reconnect after a refresh, no replay in the same room, and no
-semantic checking of answers. These are deliberate Week 3 scope decisions.
+- A game lives in the open tab: refreshing it ends the game.
+- Hint credits are counted in the browser; the server limits request rates to protect the
+  quota but cannot enforce credits without storage.
+- AI verdicts can differ between calls for the same answer; the letter rule never does.
+- The free Gemini tier may use requests to improve Google's products. Only the letter, the
+  category names and your answers (≤ 40 characters each) are sent.

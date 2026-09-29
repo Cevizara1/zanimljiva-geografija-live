@@ -41,3 +41,34 @@ describe("normalizeAnswer", () => {
     expect(normalizeAnswer(once)).toBe(once);
   });
 });
+
+describe("normalizeAnswer — Cyrillic and Latin are one script (GAME_SPEC §5.1)", () => {
+  it("transliterates Serbian Cyrillic to Latin", () => {
+    expect(normalizeAnswer("Сомбор")).toBe("sombor");
+    expect(normalizeAnswer("Београд")).toBe("beograd");
+    expect(normalizeAnswer("Чачак")).toBe("čačak");
+    expect(normalizeAnswer("Шабац")).toBe("šabac");
+    expect(normalizeAnswer("Жирафа")).toBe("žirafa");
+    expect(normalizeAnswer("Ћуприја")).toBe("ćuprija");
+    expect(normalizeAnswer("Ђевђелија")).toBe("đevđelija");
+  });
+
+  it("turns the single Cyrillic digraph letters into two Latin letters", () => {
+    expect(normalizeAnswer("Љубљана")).toBe("ljubljana");
+    expect(normalizeAnswer("Његош")).toBe("njegoš");
+    expect(normalizeAnswer("Џакарта")).toBe("džakarta");
+  });
+
+  it("makes the Cyrillic and Latin spellings compare equal", () => {
+    expect(normalizeAnswer("  СРБИЈА ")).toBe(normalizeAnswer("Srbija"));
+  });
+
+  it("handles mixed script inside one answer", () => {
+    expect(normalizeAnswer("Novi Сад")).toBe("novi sad");
+  });
+
+  it("folds the Latin ligature forms of dž, lj and nj", () => {
+    expect(normalizeAnswer("ǅakarta")).toBe("džakarta");
+    expect(normalizeAnswer("ǈubljana")).toBe("ljubljana");
+  });
+});

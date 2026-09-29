@@ -1,12 +1,10 @@
+import { ROUNDS_PER_GAME } from "@contracts/game.schemas";
 import { UI_SR } from "@client/strings";
 
-type Props = { secondsToStart: number; letter: string };
+type Props = { secondsToStart: number; letter: string; roundNumber: number };
 
-/**
- * Presentation only. Reaching zero shows a locked state and waits for the
- * server; the client never starts or closes a round by itself.
- */
-export function CountdownScreen({ secondsToStart, letter }: Props) {
+/** Presentation only: the round opens when the reducer reaches `startsAt`. */
+export function CountdownScreen({ secondsToStart, letter, roundNumber }: Props) {
   return (
     <section className="screen countdown" aria-labelledby="countdown-title">
       <h1 id="countdown-title" className="screen-title">
@@ -17,7 +15,7 @@ export function CountdownScreen({ secondsToStart, letter }: Props) {
         {secondsToStart}
       </p>
       <p aria-live="polite">
-        {UI_SR.countdownTitle}: {secondsToStart}
+        {UI_SR.round} {roundNumber} {UI_SR.of} {ROUNDS_PER_GAME} — {UI_SR.countdownTitle}: {secondsToStart}
       </p>
       <p className="letter">
         {UI_SR.letterIs} <strong>{letter}</strong>

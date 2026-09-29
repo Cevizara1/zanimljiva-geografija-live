@@ -1,59 +1,51 @@
 import { createElement } from "react";
 import { renderToStaticMarkup } from "react-dom/server";
 import { describe, expect, it } from "vitest";
-import { CATEGORIES, CATEGORY_LABELS_SR } from "@contracts/game.schemas";
-import type { Category } from "@contracts/game.schemas";
+import { CATEGORIES, CATEGORY_LABELS_SR, emptyAnswers, type Answers } from "@contracts/game.schemas";
 import { AnswerScreen } from "@client/screens/AnswerScreen";
-import type { DraftStatus } from "@client/state/useGameState";
+import type { HintView } from "@client/state/game-reducer";
 import { UI_SR } from "@client/strings";
 
-const blank = <T,>(value: T): Record<Category, T> =>
-  Object.fromEntries(CATEGORIES.map((category) => [category, value])) as Record<Category, T>;
+type Overrides = Partial<{
+  answers: Answers;
+  earlierAnswers: Answers[];
+  roundNumber: number;
+  hintCredits: number;
+  hintsAvailable: boolean;
+  hints: Partial<Record<(typeof CATEGORIES)[number], HintView>>;
+  locked: boolean;
+}>;
 
-function render(
-  overrides: {
-    answers?: Record<Category, string>;
-    opponentFinished?: boolean;
-    opponentConnected?: boolean;
-  } = {},
-) {
+function render(overrides: Overrides = {}) {
   return renderToStaticMarkup(
     createElement(AnswerScreen, {
       letter: "S",
+      roundNumber: overrides.roundNumber ?? 1,
       remainingMs: 90_000,
-      answers: overrides.answers ?? blank(""),
-      draftStatus: blank<DraftStatus>("empty"),
-      fieldError: {},
-      locked: false,
-      busy: false,
-      opponentFinished: overrides.opponentFinished ?? false,
-      opponentConnected: overrides.opponentConnected ?? true,
+      answers: overrides.answers ?? emptyAnswers(),
+      earlierAnswers: overrides.earlierAnswers ?? [],
+      locked: overrides.locked ?? false,
+      checking: false,
       announcement: "",
+      hintCredits: overrides.hintCredits ?? 3,
+      hintsAvailable: overrides.hintsAvailable ?? true,
+      hints: overrides.hints ?? {},
+      hintPending: false,
       onChange: () => {},
-      onBlur: () => {},
       onFinish: () => {},
+      onHint: () => {},
     }),
   );
 }
-
-/** The single paragraph beside the sheet that reports the opponent. */
-const opponentNote = (markup: string): string => {
-  const start = markup.indexOf("opponent-note");
-  expect(start).toBeGreaterThan(-1);
-  const open = markup.lastIndexOf("<p", start);
-  return markup.slice(open, markup.indexOf("</p>", open));
-};
 
 const bodyRows = (markup: string): string[] => {
   const body = markup.slice(markup.indexOf("<tbody>"), markup.indexOf("</tbody>"));
   return body.split("<tr").slice(1);
 };
 
-describe("the answer sheet is a ruled paper page", () => {
-  it("rules one header line and five body lines, only the first of them writable", () => {
-    const markup = render();
-    const rows = bodyRows(markup);
-
+describe("the answer sheet is a ruled paper page, one line per round", () => {
+  it("rules five body lines; in round 1 only the first is writable", () => {
+    const rows = bodyRows(render());
     expect(rows).toHaveLength(5);
     expect(rows[0]).toContain("<input");
     for (const blankRow of rows.slice(1)) {
@@ -62,109 +54,85 @@ describe("the answer sheet is a ruled paper page", () => {
     }
   });
 
-  it("starts at the first category and states the letter above the sheet", () => {
-    const markup = render();
+  it("keeps earlier rounds written, read-only, on the lines above the current one", () => {
+    const earlier = [
+      { ...emptyAnswers(), country: "Austrija" },
+      { ...emptyAnswers(), country: "Belgija" },
+    ];
+    const rows = bodyRows(render({ roundNumber: 3, earlierAnswers: earlier }));
+
+    expect(rows).toHaveLength(5);
+    expect(rows[0]).toContain("Austrija");
+    expect(rows[1]).toContain("Belgija");
+    expect(rows[0]).not.toContain("<input");
+    expect(rows[1]).not.toContain("<input");
+    expect(rows[2]).toContain("<input");
+    expect(rows[3]).toContain('aria-hidden="true"');
+    expect(rows[4]).toContain('aria-hidden="true"');
+  });
+
+  it("states the letter and the round above the sheet, with no letter or total column", () => {
+    const markup = render({ roundNumber: 2 });
     const head = markup.slice(markup.indexOf("<thead>"), markup.indexOf("</thead>"));
 
-    // No letter column and no total column while the round is running: the
-    // letter belongs in the header, and points do not exist before the reveal.
-    expect(head).toContain(CATEGORY_LABELS_SR[CATEGORIES[0]!]);
     expect(head.indexOf(CATEGORY_LABELS_SR[CATEGORIES[0]!])).toBeLessThan(
       head.indexOf(CATEGORY_LABELS_SR[CATEGORIES[1]!]),
     );
     expect(head).not.toContain("col-total");
     expect(head).not.toContain("col-row-head");
 
-    expect(markup.slice(0, markup.indexOf("<table"))).toContain("<strong>S</strong>");
+    const above = markup.slice(0, markup.indexOf("<table"));
+    expect(above).toContain("<strong>S</strong>");
+    expect(above).toContain(`${UI_SR.round} 2`);
   });
 
   it("shows no points anywhere while the round is running", () => {
-    const markup = render({ answers: { ...blank(""), country: "Srbija" } as Record<Category, string> });
+    const markup = render({ answers: { ...emptyAnswers(), country: "Srbija" } });
     expect(markup).not.toContain("cell-total");
     expect(markup).not.toContain("cell-points");
   });
 
   it("gives every category one labelled field, in sheet order", () => {
     const markup = render();
-    for (const category of CATEGORIES) {
-      expect(markup).toContain(`id="answer-${category}"`);
-      expect(markup).toContain(CATEGORY_LABELS_SR[category]);
-    }
     const positions = CATEGORIES.map((category) => markup.indexOf(`id="answer-${category}"`));
+    for (const position of positions) expect(position).toBeGreaterThan(-1);
     expect(positions).toEqual([...positions].sort((a, b) => a - b));
   });
 
-  it("reports the opponent beside the sheet and never as a line on it", () => {
-    const waiting = render();
-    expect(waiting).toContain("opponent-note");
-    expect(bodyRows(waiting)).toHaveLength(5);
-
-    const finished = render({ opponentFinished: true });
-    expect(finished).toContain("Protivnik je završio.");
-    expect(bodyRows(finished)).toHaveLength(5);
-  });
-
-  it("keeps the player's own text out of the blank lines", () => {
-    const answers = { ...blank(""), country: "Srbija" } as Record<Category, string>;
-    const rows = bodyRows(render({ answers }));
-
-    expect(rows[0]).toContain("Srbija");
-    for (const blankRow of rows.slice(1)) {
-      expect(blankRow).not.toContain("Srbija");
-    }
+  it("never mentions an opponent", () => {
+    expect(render()).not.toMatch(/protivnik/i);
   });
 });
 
-/**
- * E4. The server has always sent `connected`, and `room-lifecycle.test.ts` has
- * always asserted it on the payload. Nothing asserted what the remaining
- * player is *shown*, which is where the defect lived. These close that gap and
- * must fail against the baseline.
- */
-describe("a departed opponent is visible to the player still there", () => {
-  it("says the opponent left, in place of 'still playing'", () => {
-    const markup = render({ opponentConnected: false });
+describe("hint controls on the sheet", () => {
+  const hintButtons = (markup: string) => markup.split('class="link hint-button"').length - 1;
 
-    expect(markup).toContain("Protivnik je napustio partiju.");
-    expect(markup).not.toContain(UI_SR.opponentStillPlaying);
+  it("offers one hint control per category and shows the credits", () => {
+    const markup = render();
+    expect(hintButtons(markup)).toBe(CATEGORIES.length);
+    expect(markup).toContain(`${UI_SR.hints}: 3`);
   });
 
-  it("announces it politely, so it is not missed and does not interrupt typing", () => {
-    const note = opponentNote(render({ opponentConnected: false }));
-
-    expect(note).toContain('aria-live="polite"');
-    expect(note).not.toContain('aria-live="assertive"');
+  it("disables every hint control at zero credits", () => {
+    const markup = render({ hintCredits: 0 });
+    const buttons = markup.split('class="link hint-button"').slice(1);
+    expect(buttons).toHaveLength(CATEGORIES.length);
+    for (const button of buttons) expect(button.slice(0, 20)).toContain("disabled");
   });
 
-  it("outranks a finish the opponent had already sent", () => {
-    // They pressed Finished, then closed the tab. Gone is the fresher fact.
-    const markup = render({ opponentFinished: true, opponentConnected: false });
-
-    expect(markup).toContain("Protivnik je napustio partiju.");
-    expect(markup).not.toContain(UI_SR.opponentFinished);
+  it("shows a clue under its field and removes that field's control", () => {
+    const markup = render({ hints: { river: { status: "shown", clue: "Reka kroz Beograd." } } });
+    expect(markup).toContain("Reka kroz Beograd.");
+    expect(hintButtons(markup)).toBe(CATEGORIES.length - 1);
   });
 
-  it("seconds the message with colour rather than relying on it", () => {
-    const note = opponentNote(render({ opponentConnected: false }));
-
-    // The class is the second channel; the sentence is the first. The floor
-    // forbids colour carrying the meaning alone.
-    expect(note).toContain("opponent-note-gone");
-    expect(note).toContain("Protivnik je napustio partiju.");
+  it("says hints are unavailable when the AI is not configured", () => {
+    const markup = render({ hintsAvailable: false });
+    expect(hintButtons(markup)).toBe(0);
+    expect(markup).toContain(UI_SR.hintsUnavailable);
   });
 
-  it("says nothing about leaving while the opponent is still connected", () => {
-    expect(render()).not.toContain("napustio");
-    expect(render({ opponentFinished: true })).not.toContain("napustio");
-  });
-
-  it("leaves the sheet itself untouched — this is not a phase change", () => {
-    const rows = bodyRows(render({ opponentConnected: false }));
-
-    expect(rows).toHaveLength(5);
-    expect(rows[0]).toContain("<input");
-    // `Plan.md` §13 keeps the timer running and the player writing. A
-    // departure must not lock the form.
-    expect(rows[0]).not.toContain("disabled");
+  it("offers no hint once the sheet is locked", () => {
+    expect(hintButtons(render({ locked: true }))).toBe(0);
   });
 });

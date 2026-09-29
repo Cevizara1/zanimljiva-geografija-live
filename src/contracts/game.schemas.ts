@@ -1,5 +1,11 @@
 import { z } from "zod";
 
+/*
+ * Shared by the browser and the serverless functions. Everything reachable from
+ * `api/` imports with relative paths: Vercel does not resolve tsconfig path
+ * mappings (specs/001-singleplayer-vercel/research.md R2).
+ */
+
 /* ---------------------------------------------------------------- constants */
 
 export const CATEGORIES = [
@@ -13,29 +19,35 @@ export const CATEGORIES = [
   "thing",
 ] as const;
 
-/** Derived, never written as a literal: an array bound cannot drift from the set. */
 export const CATEGORY_COUNT = CATEGORIES.length;
-export const SUPPORTED_LETTERS = ["A", "B", "D", "K", "M", "S", "V"] as const;
-export const ROOM_CODE_ALPHABET = "ABCDEFGHJKLMNPQRSTUVWXYZ23456789";
+
+/**
+ * GAME_SPEC §3: the Serbian alphabet without Dž, Đ, Lj and Nj (owner's choice,
+ * 2026-09-30). Words starting with those still count for D, L and N (§5.2).
+ */
+export const LETTERS = [
+  "A", "B", "C", "Č", "Ć", "D", "E", "F", "G", "H", "I", "J", "K",
+  "L", "M", "N", "O", "P", "R", "S", "Š", "T", "U", "V", "Z", "Ž",
+] as const;
+
+export const ROUNDS_PER_GAME = 5;
+export const COUNTDOWN_MS = 3_000;
+export const ROUND_DURATION_MS = 150_000;
 export const MAX_ANSWER_LENGTH = 40;
 /**
  * Shortest answer that can score. A single letter is the round letter typed
- * back, not a geography answer.
- *
- * This is a *validity* rule, not an input bound: `answerValueSchema` keeps no
- * minimum so a one-character draft still saves while someone is typing
- * "Srbija" one key at a time. Validity is decided at scoring, as always.
+ * back, not an answer. This is a validity rule, not an input bound.
  */
 export const MIN_ANSWER_LENGTH = 2;
-export const MAX_DISPLAY_NAME_LENGTH = 24;
-export const ROOM_CODE_LENGTH = 6;
+export const POINTS_ACCEPTED = 10;
+export const HINT_CREDITS_PER_GAME = 3;
 
 /* -------------------------------------------------------------- primitives */
 
 export const categorySchema = z.enum(CATEGORIES);
 export type Category = z.infer<typeof categorySchema>;
 
-export const letterSchema = z.enum(SUPPORTED_LETTERS);
+export const letterSchema = z.enum(LETTERS);
 export type Letter = z.infer<typeof letterSchema>;
 
 /** Serbian Latin labels. The UI never hard-codes these strings. */
@@ -50,79 +62,70 @@ export const CATEGORY_LABELS_SR: Record<Category, string> = {
   thing: "Predmet",
 };
 
-export const roomCodeSchema = z
-  .string()
-  .length(ROOM_CODE_LENGTH)
-  .regex(/^[ABCDEFGHJKLMNPQRSTUVWXYZ23456789]{6}$/, "invalid room code");
-
-export const displayNameSchema = z.string().trim().min(1).max(MAX_DISPLAY_NAME_LENGTH);
+/** For reasons such as "nije reka": the label in lower case, as it reads mid-sentence. */
+export const CATEGORY_NOUN_SR: Record<Category, string> = {
+  country: "država",
+  city: "grad",
+  river: "reka",
+  mountain: "planina",
+  sea: "more",
+  animal: "životinja",
+  plant: "biljka",
+  thing: "predmet",
+};
 
 export const answerValueSchema = z.string().max(MAX_ANSWER_LENGTH);
 
-export const roundIdSchema = z.string().uuid();
-
-export const revisionSchema = z.number().int().nonnegative().max(100_000);
-
-export const epochMsSchema = z.number().int().positive();
-
-export const playerSlotSchema = z.union([z.literal(1), z.literal(2)]);
-export type PlayerSlot = z.infer<typeof playerSlotSchema>;
-
-/** Caller-private credential. Never appears in a broadcast or a projection. */
-export const resumeTokenSchema = z.string().min(32).max(64);
-
-/* ------------------------------------------------------------ round shapes */
-
-export const roomPhaseSchema = z.enum([
-  "waiting_for_player",
-  "synchronizing",
-  "countdown",
-  "answering",
-  "results",
-  "closed",
-]);
-export type RoomPhase = z.infer<typeof roomPhaseSchema>;
-
-export const closedReasonSchema = z.enum(["both_finished", "deadline"]);
-export type ClosedReason = z.infer<typeof closedReasonSchema>;
-
-export const scoreReasonSchema = z.enum([
-  "both_different",
-  "same_answer",
-  "only_player_1",
-  "only_player_2",
-  "neither",
-]);
-export type ScoreReason = z.infer<typeof scoreReasonSchema>;
-
-export const pointsSchema = z.union([z.literal(0), z.literal(5), z.literal(10)]);
-export type Points = z.infer<typeof pointsSchema>;
-
-export const categoryScoreSchema = z
+/** The eight answers of one round, keyed by category; every key present. */
+export const answersSchema = z
   .object({
-    category: categorySchema,
-    player1Points: pointsSchema,
-    player2Points: pointsSchema,
-    reason: scoreReasonSchema,
+    country: answerValueSchema,
+    city: answerValueSchema,
+    river: answerValueSchema,
+    mountain: answerValueSchema,
+    sea: answerValueSchema,
+    animal: answerValueSchema,
+    plant: answerValueSchema,
+    thing: answerValueSchema,
   })
   .strict();
-export type CategoryScore = z.infer<typeof categoryScoreSchema>;
+export type Answers = z.infer<typeof answersSchema>;
 
-export const outcomeSchema = z.enum(["player_1", "player_2", "draw"]);
-export type Outcome = z.infer<typeof outcomeSchema>;
+export function emptyAnswers(): Answers {
+  return {
+    country: "",
+    city: "",
+    river: "",
+    mountain: "",
+    sea: "",
+    animal: "",
+    plant: "",
+    thing: "",
+  };
+}
 
-/* ------------------------------------------------------------------ config */
+/* --------------------------------------------------------------- results */
 
-/**
- * Parsed once at startup. Bounded on every field so an invalid deployment
- * setting fails loudly instead of propagating NaN or an unbounded timer.
- */
-export const serverConfigSchema = z.object({
-  port: z.coerce.number().int().min(1).max(65_535).default(3000),
-  nodeEnv: z.enum(["development", "test", "production"]).default("development"),
-  roundDurationMs: z.coerce.number().int().min(5_000).max(600_000).default(150_000),
-  countdownMs: z.coerce.number().int().min(1_000).max(30_000).default(3_000),
-  completedRoomTtlMs: z.coerce.number().int().min(10_000).default(300_000),
-  waitingRoomTtlMs: z.coerce.number().int().min(60_000).default(1_800_000),
-});
-export type ServerConfig = z.infer<typeof serverConfigSchema>;
+export const lineStatusSchema = z.enum(["accepted", "rejected", "empty"]);
+export type LineStatus = z.infer<typeof lineStatusSchema>;
+
+export const pointsSchema = z.union([z.literal(0), z.literal(POINTS_ACCEPTED)]);
+
+/** One category of one scored round, as the results sheet shows it. */
+export const categoryResultSchema = z
+  .object({
+    category: categorySchema,
+    written: answerValueSchema,
+    status: lineStatusSchema,
+    /** Correct spelling the AI recognised; null when unverified or not recognised. */
+    recognizedName: z.string().max(60).nullable(),
+    /** Short Serbian reason for a rejection; null when accepted or empty. */
+    reason: z.string().max(60).nullable(),
+    /** A term the player could have written; only for rejected or empty lines. */
+    example: z.string().max(60).nullable(),
+    /** True when no real term exists for this letter and category. */
+    noKnownTerm: z.boolean(),
+    points: pointsSchema,
+  })
+  .strict();
+export type CategoryResult = z.infer<typeof categoryResultSchema>;

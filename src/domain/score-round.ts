@@ -1,32 +1,49 @@
-import { CATEGORIES } from "@contracts/game.schemas";
-import type { Category, CategoryScore, Letter, Outcome } from "@contracts/game.schemas";
-import { scoreCategory } from "@domain/score-category";
+import {
+  CATEGORIES,
+  POINTS_ACCEPTED,
+  type Answers,
+  type CategoryResult,
+  type Letter,
+} from "../contracts/game.schemas";
+import { checkAnswerLocally, type LocalVerdict } from "./validate-answer";
 
-export type RoundScore = {
-  scores: CategoryScore[];
-  player1Total: number;
-  player2Total: number;
-  outcome: Outcome;
+export type RoundResult = {
+  lines: CategoryResult[];
+  points: number;
+  /** True only when the AI check succeeded (feature 002). */
+  verified: boolean;
 };
 
+/** Short Serbian reason for a local rejection, as the results sheet shows it. */
+export function localReasonText(verdict: LocalVerdict, letter: Letter): string | null {
+  if (verdict.ok || verdict.reason === "empty") return null;
+  return verdict.reason === "too_short" ? "prekratko" : `ne počinje slovom ${letter}`;
+}
+
+export function sumPoints(lines: readonly CategoryResult[]): number {
+  return lines.reduce((total, line) => total + line.points, 0);
+}
+
 /**
- * Scores every category in the locked `CATEGORIES` order, so both players
- * receive the same rows in the same order from one deterministic pass.
+ * The no-AI scoring rule (GAME_SPEC §6): 10 for every answer that passes the
+ * local check, 0 otherwise. Used when feature 002's check is unavailable, and
+ * therefore always marked unverified.
  */
-export function scoreRound(
-  answers1: Record<Category, string>,
-  answers2: Record<Category, string>,
-  letter: Letter,
-): RoundScore {
-  const scores = CATEGORIES.map((category) =>
-    scoreCategory(category, answers1[category], answers2[category], letter),
-  );
+export function scoreRoundLocally(answers: Answers, letter: Letter): RoundResult {
+  const lines = CATEGORIES.map((category): CategoryResult => {
+    const written = answers[category];
+    const verdict = checkAnswerLocally(written, letter);
+    return {
+      category,
+      written,
+      status: verdict.ok ? "accepted" : verdict.reason === "empty" ? "empty" : "rejected",
+      recognizedName: null,
+      reason: localReasonText(verdict, letter),
+      example: null,
+      noKnownTerm: false,
+      points: verdict.ok ? POINTS_ACCEPTED : 0,
+    };
+  });
 
-  const player1Total = scores.reduce((total, score) => total + score.player1Points, 0);
-  const player2Total = scores.reduce((total, score) => total + score.player2Points, 0);
-
-  const outcome: Outcome =
-    player1Total > player2Total ? "player_1" : player2Total > player1Total ? "player_2" : "draw";
-
-  return { scores, player1Total, player2Total, outcome };
+  return { lines, points: sumPoints(lines), verified: false };
 }

@@ -1,6 +1,6 @@
 import { StrictMode } from "react";
 import { createRoot } from "react-dom/client";
-import { PlayerApp } from "./PlayerApp";
+import { App } from "./App";
 import "./app.css";
 
 const container = document.getElementById("root");
@@ -10,6 +10,6 @@ if (!container) {
 
 createRoot(container).render(
   <StrictMode>
-    <PlayerApp />
+    <App />
   </StrictMode>,
 );

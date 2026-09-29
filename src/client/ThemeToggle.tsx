@@ -6,7 +6,7 @@ import {
   THEME_CHOICES,
   type ThemeChoice,
 } from "@client/theme";
-import { AUTH_SR } from "@client/strings";
+import { UI_SR } from "@client/strings";
 
 export function ThemeToggle() {
   const [choice, setChoice] = useState<ThemeChoice>(() => readStoredTheme());
@@ -17,7 +17,7 @@ export function ThemeToggle() {
 
   return (
     <div className="theme-toggle">
-      <label htmlFor="theme-choice">{AUTH_SR.theme}</label>
+      <label htmlFor="theme-choice">{UI_SR.theme}</label>
       <select
         id="theme-choice"
         name="theme"
@@ -30,7 +30,7 @@ export function ThemeToggle() {
       >
         {THEME_CHOICES.map((value) => (
           <option value={value} key={value}>
-            {AUTH_SR.themes[value]}
+            {UI_SR.themes[value]}
           </option>
         ))}
       </select>

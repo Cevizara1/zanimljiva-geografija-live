@@ -1,3 +1,8 @@
+> **Week 3 record.** This document describes the two-player Socket.IO system that feature
+> 001 removed on 2026-09-30. It is kept unchanged as evidence; current rules live in
+> `.specify/memory/constitution.md`, `docs/GAME_SPEC.md` and `specs/`. Paths it mentions
+> (`Plan.md`, `.github/instructions/*`, `docs/GAME_SPEC.md` v1) are now under `docs/archive/w03/`.
+
 # EVALS — Zanimljiva Geografija Live
 
 **Expectations written on 2026-09-22, before any gameplay code existed.**

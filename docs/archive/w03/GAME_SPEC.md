@@ -1,0 +1,162 @@
+# GAME_SPEC — Zanimljiva Geografija Live
+
+**Status:** FROZEN for Week 3 Core as of 2026-09-22.
+Changing anything in this file after this point is a scope change and must be
+recorded in `docs/EVIDENCE_003.md` with a reason.
+
+**Amendment 3 — 2026-09-22, at the product owner's request.** Real accounts,
+profiles and persistent personal history are now included as an extension to
+Core. Players register with their email address, a display name and a password,
+or continue as guests. The email address is the identity, matched case- and
+whitespace-insensitively, so one address is one account. Sign-in with Google
+was asked about and is **not** included: it needs an external identity provider
+and a new dependency, and is recorded as a proposal in `Plan.md` §2.
+Login works across devices using the same server. Each
+completed round saves the account holder's eight answers, validity, category
+points, letter, date, opponent display name, outcome and totals. Only the
+authenticated owner can read their history; no drafts are persisted or exposed
+through history before close. Duplicate closes must not duplicate points.
+The profile shows lifetime points and paginated completed rounds. Room-code
+play and all existing round rules remain. Matchmaking is proposed, not added.
+The exclusions in §7 describe the original Core, except as amended here.
+
+**Amendment 2 — 2026-09-22, at the product owner's request.** An answer must
+now be at least two characters after normalization: the round letter typed back
+on its own no longer scores. The round is 150 seconds instead of 90, for nine
+categories rather than six. Both are recorded in `docs/EVIDENCE_003.md`.
+
+**Amendment 4 — 2026-09-23, at the product owner's request.** `lake` (Jezero)
+was removed from the category set, which is now eight: Država, Grad, Reka,
+Planina, More, Životinja, Biljka, Predmet. Amendment 1 below records the set as
+nine and is left as written, so the history stays auditable. Round length is
+unchanged at 150 seconds. Recorded in `docs/EVIDENCE_003.md`.
+
+**Amendment 1 — 2026-09-22, at the product owner's request.** The category set
+grew from six to nine: `lake` (Jezero), `sea` (More) and `thing` (Predmet) were
+added, and the order now reads Država, Grad, Reka, Planina, Jezero, More,
+Životinja, Biljka, Predmet. Every "six categories" below became "nine". Nothing
+else in this document changed: the rules, scoring, timing, privacy model and
+exclusions are untouched. Recorded in `docs/EVIDENCE_003.md`. The pre-registered
+evaluations in `EVALS.md` are unaffected — none of them names a category count.
+
+**Authority:** this file is the authoritative description of game behavior.
+`Plan.md` holds sequencing, architecture and ownership; where the two disagree
+about *behavior*, this file wins.
+
+## 1. Project name
+
+Zanimljiva Geografija Live — a two-player, two-computer online version of the
+Serbian pen-and-paper game.
+
+## 2. Description
+
+Two people, each on their own computer, play one synchronized round of
+Zanimljiva Geografija in the browser. One player creates a room and shares a
+six-character code; the second player joins with it. Once both game screens
+have loaded, the server picks one random letter and schedules a single shared
+start time and deadline, so neither player can see the letter earlier than the
+other. Each player privately fills in eight geography categories for that letter,
+and the answers are revealed and scored only after both players finish or the
+server deadline passes.
+
+## 3. Player objective and controls
+
+**Objective:** score more points than your opponent by writing a valid answer in
+each of the eight categories, and by choosing answers your opponent did not.
+
+**Controls:** keyboard only — a name field, a room-code field, eight text inputs
+(one per category), and a **Finished** button. No mouse is required and there
+are no timed reflex actions.
+
+## 4. Core loop and round-completion condition
+
+```text
+create or join a room
+  -> both screens load and acknowledge automatically
+  -> shared 3-second countdown
+  -> 150 seconds of private typing across eight categories
+  -> the round closes when BOTH players press Finished, or when the server
+     deadline is reached, whichever happens first
+  -> both answer sets are revealed at the same moment
+  -> the server scores every category and declares a winner or a draw
+```
+
+One round per room. The round-completion condition is server-decided; a browser
+countdown reaching zero does not itself end the round.
+
+## 5. Key rules
+
+1. Both players receive the identical round: same letter, same eight categories,
+   same `startsAt`, same `endsAt`.
+2. The letter is chosen by the server **only after both clients are ready**, and
+   is never revealed to one player before the other.
+3. At most one answer per category per player; at most 40 characters.
+4. An answer is **valid** when, after normalization, it is **at least two
+   characters** and starts with the round letter. Geographic and semantic
+   correctness is **not** checked.
+5. Answers are invisible to the opponent until the reveal.
+6. **Finished** permanently locks that player's answers and cannot be undone.
+7. Scoring per category: two different valid answers → 10 each; the same valid
+   answer → 5 each; only one valid answer → 10 and 0; neither valid → 0 and 0.
+8. The server alone decides identity, phase, timing, validity and points.
+
+Supported letters: `A, B, D, K, M, S, V`.
+Categories: Država, Grad, Reka, Planina, More, Životinja, Biljka, Predmet.
+
+## 6. Minimum visual requirement
+
+Readable, keyboard-accessible HTML with labelled inputs, a visible countdown, a
+clear phase indicator (waiting / countdown / answering / waiting for opponent /
+results), a per-field saved-or-pending indicator, and a results table showing
+both answers, validity and points side by side. Light styling only. Animation,
+theming and artwork are explicitly not required.
+
+## 7. Explicit exclusions
+
+Accounts, passwords, more than two players, spectators, matchmaking, chat,
+database, persistent history or leaderboards, reconnect/resume after refresh,
+replay in the same room, a geography dictionary or any semantic answer checking,
+external geography APIs, AI hints or AI judging, Cyrillic input and
+Cyrillic/Latin equivalence, anti-cheat guarantees, mobile-native apps.
+
+## 8. Definition of Done (verifiable)
+
+- [ ] Two players on two physically separate computers create and join one room
+      through the deployed URL.
+- [ ] Neither player sees the letter before the shared countdown begins.
+- [ ] Both clients receive byte-identical `roundId`, `letter`, `categories`,
+      `startsAt` and `endsAt`.
+- [ ] Neither client holds the opponent's answers in memory before the reveal
+      (verified by an automated absence assertion, not by looking at the UI).
+- [ ] Pressing Finished locks that player's answers; a later edit is rejected.
+- [ ] Both-finished and deadline paths each reveal and score exactly once.
+- [ ] All five scoring outcomes are demonstrated by passing tests.
+- [ ] Every client-to-server event is parsed by a shared runtime schema, and a
+      rejected event leaves canonical state unchanged.
+- [ ] `npm run verify` passes and the output is recorded.
+- [ ] `/healthz`, SPA refresh and a full round work on the deployed URL.
+
+## 9. Instructor approval
+
+> **NOT YET OBTAINED — blocking for submission, not for implementation.**
+>
+> | Field | Value |
+> | --- | --- |
+> | Requested on | _to fill_ |
+> | Approved by | _to fill_ |
+> | Approved on | _to fill_ |
+> | Conditions | _to fill_ |
+
+This game is not an arcade game, and Week 3 guidance leans arcade. Approval is
+required for the domain choice and for the minimal real-time backend.
+
+## 10. Why a backend is necessary, not decorative
+
+The game's central fairness property — that neither player learns the letter
+before the other, and that both share one authoritative deadline — cannot be
+established by two browsers alone. It requires a single authority that chooses
+the letter after both clients are ready, holds the answers privately until the
+reveal, and decides timing. That is one Node process with Socket.IO and in-memory
+rooms: no database, no accounts, no second service, one replica. This is the
+minimum infrastructure that makes the stated game possible, and every component
+of it appears in the fairness argument above.

@@ -1,19 +1,26 @@
-import { MIN_ANSWER_LENGTH } from "@contracts/game.schemas";
-import { normalizeAnswer } from "@domain/normalize-answer";
+import { MIN_ANSWER_LENGTH, type Letter } from "../contracts/game.schemas";
+import { matchesWritten } from "./letter-match";
+import { normalizeAnswer } from "./normalize-answer";
+
+export type LocalVerdict =
+  | { ok: true }
+  | { ok: false; reason: "empty" | "too_short" | "wrong_letter" };
 
 /**
- * Core validity is an honor-system rule: at least MIN_ANSWER_LENGTH characters
- * after normalization, and starting with the round letter. Geographic or
- * semantic correctness is explicitly not checked (`GAME_SPEC.md` §5 rule 4).
- *
- * The 40-character cap is an input bound owned by `answerValueSchema` at the
- * socket boundary, not re-checked here, so the rule has exactly one owner.
- *
- * Amendment 2 (2026-09-22): the floor was `length > 0`, which let a player
- * score by typing the round letter alone. Recorded in `docs/EVIDENCE_003.md`.
+ * GAME_SPEC §5 step 1 — decided before, and without, any AI call: at least
+ * MIN_ANSWER_LENGTH letters after normalization, and the right starting letter
+ * under §5.2. The 40-character cap is owned by `answerValueSchema` at the boundary.
  */
-export function isValidAnswer(raw: string, letter: string): boolean {
+export function checkAnswerLocally(raw: string, letter: Letter): LocalVerdict {
   const normalized = normalizeAnswer(raw);
-  const normalizedLetter = normalizeAnswer(letter);
-  return normalized.length >= MIN_ANSWER_LENGTH && normalized.startsWith(normalizedLetter);
+  if (normalized === "") return { ok: false, reason: "empty" };
+  if (normalized.length < MIN_ANSWER_LENGTH) return { ok: false, reason: "too_short" };
+  if (!matchesWritten(raw, letter)) return { ok: false, reason: "wrong_letter" };
+  return { ok: true };
+}
+
+/** Boolean form of the local rule; the letter may be given in any case. */
+export function isValidAnswer(raw: string, letter: string): boolean {
+  const upper = letter.toLocaleUpperCase("sr-Latn") as Letter;
+  return checkAnswerLocally(raw, upper).ok;
 }
