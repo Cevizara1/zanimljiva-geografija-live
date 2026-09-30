@@ -1,4 +1,4 @@
-import type { AiOperation, AttemptKind } from "./types";
+import type { AiOperation, AttemptKind } from "./types.js";
 
 /*
  * Local debugging aid — a bounded exception to constitution VIII (amendment 1.1.0).

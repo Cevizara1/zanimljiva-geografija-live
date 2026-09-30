@@ -1,12 +1,12 @@
-import { hintOutputSchema, HINT_JSON_SCHEMA } from "../../contracts/ai-output.schemas";
-import { MAX_CLUE_LENGTH, MIN_CLUE_LENGTH, type HintRequest, type HintSuccess } from "../../contracts/api.schemas";
-import type { Category, Letter } from "../../contracts/game.schemas";
-import { leaksTerm } from "../../domain/hint-leak";
-import { matchesRecognised } from "../../domain/letter-match";
-import { generate, type GatewayDeps } from "../ai/gateway";
-import { BUDGETS } from "../ai/retry-policy";
-import type { AiResult, Validation } from "../ai/types";
-import { buildHintContent, HINT_PROMPT_VERSION, HINT_SYSTEM_INSTRUCTION } from "../prompts/hint.v1";
+import { hintOutputSchema, HINT_JSON_SCHEMA } from "../../contracts/ai-output.schemas.js";
+import { MAX_CLUE_LENGTH, MIN_CLUE_LENGTH, type HintRequest, type HintSuccess } from "../../contracts/api.schemas.js";
+import type { Category, Letter } from "../../contracts/game.schemas.js";
+import { leaksTerm } from "../../domain/hint-leak.js";
+import { matchesRecognised } from "../../domain/letter-match.js";
+import { generate, type GatewayDeps } from "../ai/gateway.js";
+import { BUDGETS } from "../ai/retry-policy.js";
+import type { AiResult, Validation } from "../ai/types.js";
+import { buildHintContent, HINT_PROMPT_VERSION, HINT_SYSTEM_INSTRUCTION } from "../prompts/hint.v1.js";
 
 /**
  * GAME_SPEC §7. The described term is used only to validate the clue; it never

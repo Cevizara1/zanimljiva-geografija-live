@@ -6,7 +6,7 @@ import {
   categoryResultSchema,
   categorySchema,
   letterSchema,
-} from "./game.schemas";
+} from "./game.schemas.js";
 
 /*
  * The browser ↔ backend contract (specs/002-ai-answer-check-and-hints/contracts/http-api.md).

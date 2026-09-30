@@ -1,4 +1,4 @@
-import { compactFold } from "./fold-letters";
+import { compactFold } from "./fold-letters.js";
 
 /* The domain avoids `Math` altogether (a lint rule keeps it deterministic). */
 const smallest = (a: number, b: number, c: number): number => (a < b ? (a < c ? a : c) : b < c ? b : c);

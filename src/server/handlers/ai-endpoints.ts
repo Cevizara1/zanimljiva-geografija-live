@@ -1,15 +1,15 @@
-import { checkRoundRequestSchema, hintRequestSchema } from "../../contracts/api.schemas";
-import { loadAiConfig, type AiEnv } from "../ai/config";
-import { createDebugSink, type DebugEnv } from "../ai/debug-log";
-import { createGeminiAdapter } from "../ai/gemini-adapter";
-import type { GatewayDeps } from "../ai/gateway";
-import { consoleTelemetry, type TelemetrySink } from "../ai/telemetry";
-import { createModelHealth, type ModelHealth } from "../ai/model-health";
-import type { AiResult } from "../ai/types";
-import { runCheckRound } from "../features/check-round";
-import { runHint } from "../features/hint";
-import { clientKey, failureResponse, jsonResponse, MESSAGES, readJsonBody } from "../http/json-handler";
-import { createEndpointLimiter, systemClock } from "../http/rate-limit";
+import { checkRoundRequestSchema, hintRequestSchema } from "../../contracts/api.schemas.js";
+import { loadAiConfig, type AiEnv } from "../ai/config.js";
+import { createDebugSink, type DebugEnv } from "../ai/debug-log.js";
+import { createGeminiAdapter } from "../ai/gemini-adapter.js";
+import type { GatewayDeps } from "../ai/gateway.js";
+import { consoleTelemetry, type TelemetrySink } from "../ai/telemetry.js";
+import { createModelHealth, type ModelHealth } from "../ai/model-health.js";
+import type { AiResult } from "../ai/types.js";
+import { runCheckRound } from "../features/check-round.js";
+import { runHint } from "../features/hint.js";
+import { clientKey, failureResponse, jsonResponse, MESSAGES, readJsonBody } from "../http/json-handler.js";
+import { createEndpointLimiter, systemClock } from "../http/rate-limit.js";
 
 /*
  * Request → validate body → rate limit → configured? → feature → safe response.

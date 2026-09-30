@@ -1,4 +1,4 @@
-import type { AiFailureCode } from "./types";
+import type { AiFailureCode } from "./types.js";
 
 /*
  * Model rotation (owner-approved plan A, 2026-09-30). Remembers, per serverless

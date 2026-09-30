@@ -1,5 +1,5 @@
 import type { z } from "zod";
-import { MAX_BODY_BYTES, type ApiFailure, type ApiFailureCode } from "../../contracts/api.schemas";
+import { MAX_BODY_BYTES, type ApiFailure, type ApiFailureCode } from "../../contracts/api.schemas.js";
 
 /*
  * The only way our functions answer: JSON, never cached, never a stack trace,

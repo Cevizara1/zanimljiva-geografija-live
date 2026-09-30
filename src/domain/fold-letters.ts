@@ -1,4 +1,4 @@
-import { normalizeAnswer } from "./normalize-answer";
+import { normalizeAnswer } from "./normalize-answer.js";
 
 /**
  * GAME_SPEC §5.1 folding: the way people write Serbian without diacritics

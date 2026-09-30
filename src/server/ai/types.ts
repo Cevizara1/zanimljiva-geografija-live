@@ -1,4 +1,4 @@
-import type { ThinkingLevel } from "./config";
+import type { ThinkingLevel } from "./config.js";
 
 /*
  * Provider-neutral contract between the feature services, the gateway and the

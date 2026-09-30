@@ -1,4 +1,4 @@
-import type { AiFailureCode } from "./types";
+import type { AiFailureCode } from "./types.js";
 
 /*
  * research R5 — the W04 decision table, as code. Retry repeats the same model;

@@ -1,5 +1,5 @@
 import { z } from "zod";
-import { CATEGORIES, categorySchema } from "./game.schemas";
+import { CATEGORIES, categorySchema } from "./game.schemas.js";
 
 /*
  * What the model must return (contracts/ai-provider-contract.md). Two fences:

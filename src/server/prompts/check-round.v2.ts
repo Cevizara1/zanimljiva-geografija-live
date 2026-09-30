@@ -1,5 +1,5 @@
-import { CATEGORY_LABELS_SR, type Category, type Letter } from "../../contracts/game.schemas";
-import { CATEGORY_RULES, LETTER_RULE } from "./category-rules";
+import { CATEGORY_LABELS_SR, type Category, type Letter } from "../../contracts/game.schemas.js";
+import { CATEGORY_RULES, LETTER_RULE } from "./category-rules.js";
 
 /*
  * Reviewed copy: specs/002-ai-answer-check-and-hints/contracts/prompts.md.

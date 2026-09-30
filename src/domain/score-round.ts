@@ -4,8 +4,8 @@ import {
   type Answers,
   type CategoryResult,
   type Letter,
-} from "../contracts/game.schemas";
-import { checkAnswerLocally, type LocalVerdict } from "./validate-answer";
+} from "../contracts/game.schemas.js";
+import { checkAnswerLocally, type LocalVerdict } from "./validate-answer.js";
 
 export type RoundResult = {
   lines: CategoryResult[];

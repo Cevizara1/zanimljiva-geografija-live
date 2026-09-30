@@ -1,4 +1,4 @@
-import { LETTERS, ROUNDS_PER_GAME, type Letter } from "../contracts/game.schemas";
+import { LETTERS, ROUNDS_PER_GAME, type Letter } from "../contracts/game.schemas.js";
 
 /** Returns an integer in [0, maxExclusive). Injected so tests can pin the letters. */
 export type RandomInt = (maxExclusive: number) => number;

@@ -1,5 +1,5 @@
-import type { SkippedModel } from "./model-health";
-import type { AiFailureCode, AiOperation, ProviderAttempt, TokenUsage, ValidationNotes } from "./types";
+import type { SkippedModel } from "./model-health.js";
+import type { AiFailureCode, AiOperation, ProviderAttempt, TokenUsage, ValidationNotes } from "./types.js";
 
 /*
  * constitution VIII / W04 PDF §10-11. One line per logical interaction with the

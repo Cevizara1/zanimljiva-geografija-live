@@ -1,4 +1,4 @@
-import { wordsFold } from "./fold-letters";
+import { wordsFold } from "./fold-letters.js";
 
 const RUN = 4;
 

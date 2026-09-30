@@ -1,6 +1,6 @@
-import type { HealthResponse } from "../../contracts/api.schemas";
-import { loadAiConfig, type AiEnv } from "../ai/config";
-import { jsonResponse } from "../http/json-handler";
+import type { HealthResponse } from "../../contracts/api.schemas.js";
+import { loadAiConfig, type AiEnv } from "../ai/config.js";
+import { jsonResponse } from "../http/json-handler.js";
 
 /** GET /api/health — whether the AI is configured; never the key, chain or limits. */
 export function createHealthHandler(deps: { env: AiEnv }) {

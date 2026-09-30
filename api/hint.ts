@@ -1,4 +1,4 @@
-import { createHintHandler, productionLimiters } from "../src/server/handlers/ai-endpoints";
+import { createHintHandler, productionLimiters } from "../src/server/handlers/ai-endpoints.js";
 
 /** POST /api/hint — one AI request per spent credit (contracts/http-api.md). */
 export default createHintHandler({ env: process.env, limiter: productionLimiters.hint() });

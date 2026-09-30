@@ -1,5 +1,5 @@
-import type { Letter } from "../contracts/game.schemas";
-import { normalizeAnswer } from "./normalize-answer";
+import type { Letter } from "../contracts/game.schemas.js";
+import { normalizeAnswer } from "./normalize-answer.js";
 
 /**
  * GAME_SPEC §5.2. Letters are compared as Serbian letters, so the digraphs

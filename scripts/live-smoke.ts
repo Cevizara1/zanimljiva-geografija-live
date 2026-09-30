@@ -11,13 +11,13 @@
  * Every run must be recorded in docs/AI_USAGE_LOG.md and docs/AI_EVALS.md.
  */
 import { existsSync } from "node:fs";
-import { emptyAnswers, type Answers, type Category, type Letter } from "../src/contracts/game.schemas";
-import { loadAiConfig } from "../src/server/ai/config";
-import { createGeminiAdapter } from "../src/server/ai/gemini-adapter";
-import { createDebugSink } from "../src/server/ai/debug-log";
-import { memoryTelemetry } from "../src/server/ai/telemetry";
-import { runCheckRound } from "../src/server/features/check-round";
-import { runHint } from "../src/server/features/hint";
+import { emptyAnswers, type Answers, type Category, type Letter } from "../src/contracts/game.schemas.js";
+import { loadAiConfig } from "../src/server/ai/config.js";
+import { createGeminiAdapter } from "../src/server/ai/gemini-adapter.js";
+import { createDebugSink } from "../src/server/ai/debug-log.js";
+import { memoryTelemetry } from "../src/server/ai/telemetry.js";
+import { runCheckRound } from "../src/server/features/check-round.js";
+import { runHint } from "../src/server/features/hint.js";
 
 type Expect = "accepted" | "rejected" | "empty";
 type EvalRound = { letter: Letter; answers: Partial<Record<Category, [string, Expect]>> };

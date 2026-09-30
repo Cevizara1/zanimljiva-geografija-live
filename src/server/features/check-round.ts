@@ -3,8 +3,8 @@ import {
   CHECK_ROUND_JSON_SCHEMA,
   type CheckItem,
   type ReasonCode,
-} from "../../contracts/ai-output.schemas";
-import type { CheckRoundRequest, CheckRoundSuccess } from "../../contracts/api.schemas";
+} from "../../contracts/ai-output.schemas.js";
+import type { CheckRoundRequest, CheckRoundSuccess } from "../../contracts/api.schemas.js";
 import {
   CATEGORIES,
   CATEGORY_NOUN_SR,
@@ -14,21 +14,21 @@ import {
   type Category,
   type CategoryResult,
   type Letter,
-} from "../../contracts/game.schemas";
-import { compactFold } from "../../domain/fold-letters";
-import { matchesRecognised } from "../../domain/letter-match";
-import { editDistance, resembles } from "../../domain/resemblance";
-import { localReasonText, sumPoints } from "../../domain/score-round";
-import { checkAnswerLocally } from "../../domain/validate-answer";
-import { generate, type GatewayDeps } from "../ai/gateway";
-import { BUDGETS } from "../ai/retry-policy";
-import type { AiResult, Validation, ValidationNotes } from "../ai/types";
+} from "../../contracts/game.schemas.js";
+import { compactFold } from "../../domain/fold-letters.js";
+import { matchesRecognised } from "../../domain/letter-match.js";
+import { editDistance, resembles } from "../../domain/resemblance.js";
+import { localReasonText, sumPoints } from "../../domain/score-round.js";
+import { checkAnswerLocally } from "../../domain/validate-answer.js";
+import { generate, type GatewayDeps } from "../ai/gateway.js";
+import { BUDGETS } from "../ai/retry-policy.js";
+import type { AiResult, Validation, ValidationNotes } from "../ai/types.js";
 import {
   buildCheckRoundContent,
   CHECK_ROUND_PROMPT_VERSION,
   CHECK_ROUND_SYSTEM_INSTRUCTION,
   type CheckRoundItem,
-} from "../prompts/check-round.v2";
+} from "../prompts/check-round.v2.js";
 
 /*
  * One request per round (FR-002): judge what passed the local rule, and ask

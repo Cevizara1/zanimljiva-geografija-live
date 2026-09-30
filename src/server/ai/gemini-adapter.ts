@@ -1,6 +1,6 @@
-import { classifyHttpStatus } from "./classify";
-import { isDailyQuota, parseRetryAfterMs } from "./retry-policy";
-import type { AdapterResult, ModelCall, ProviderAdapter, TokenUsage } from "./types";
+import { classifyHttpStatus } from "./classify.js";
+import { isDailyQuota, parseRetryAfterMs } from "./retry-policy.js";
+import type { AdapterResult, ModelCall, ProviderAdapter, TokenUsage } from "./types.js";
 
 /*
  * Gemini REST wire format ↔ our provider-neutral call (research R1). Plain

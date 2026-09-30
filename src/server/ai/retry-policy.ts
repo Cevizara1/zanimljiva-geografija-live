@@ -1,4 +1,4 @@
-import type { AiOperation, RetryBudget } from "./types";
+import type { AiOperation, RetryBudget } from "./types.js";
 
 /*
  * research R4. Every retry and fallback of one interaction shares one deadline,

@@ -1,6 +1,6 @@
-import { MIN_ANSWER_LENGTH, type Letter } from "../contracts/game.schemas";
-import { matchesWritten } from "./letter-match";
-import { normalizeAnswer } from "./normalize-answer";
+import { MIN_ANSWER_LENGTH, type Letter } from "../contracts/game.schemas.js";
+import { matchesWritten } from "./letter-match.js";
+import { normalizeAnswer } from "./normalize-answer.js";
 
 export type LocalVerdict =
   | { ok: true }

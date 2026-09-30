@@ -1,9 +1,9 @@
-import { canFallBack, canRetrySameModel, isRetryableLater } from "./classify";
-import { defaultThinkingLevel, type ThinkingLevel } from "./config";
-import type { DebugSink } from "./debug-log";
-import type { ModelHealth } from "./model-health";
-import { backoffMs } from "./retry-policy";
-import type { TelemetrySink } from "./telemetry";
+import { canFallBack, canRetrySameModel, isRetryableLater } from "./classify.js";
+import { defaultThinkingLevel, type ThinkingLevel } from "./config.js";
+import type { DebugSink } from "./debug-log.js";
+import type { ModelHealth } from "./model-health.js";
+import { backoffMs } from "./retry-policy.js";
+import type { TelemetrySink } from "./telemetry.js";
 import type {
   AiFailureCode,
   AiRequest,
@@ -13,7 +13,7 @@ import type {
   ProviderAttempt,
   TokenUsage,
   ValidationNotes,
-} from "./types";
+} from "./types.js";
 
 /*
  * The attempt loop (W04 PDF §4-§6): sequential attempts through an allowlisted
