@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import { createGeminiAdapter } from "@server/ai/gemini-adapter";
 import { generate } from "@server/ai/gateway";
 import { COOL_DOWN_MS, MAX_COOL_DOWN_MS, createModelHealth, nextPacificMidnight } from "@server/ai/model-health";
+import { DEFAULT_MODEL_CHAIN } from "@server/ai/config";
 import { BUDGETS, isDailyQuota } from "@server/ai/retry-policy";
 import { memoryTelemetry } from "@server/ai/telemetry";
 import type { AiRequest } from "@server/ai/types";
@@ -194,7 +195,7 @@ describe("the limit-reached message reaches the player", () => {
       retryable: false,
       message: "Dnevni limit AI provera je potrošen. Igra radi dalje, a odgovori se boduju samo po početnom slovu do sutra oko 9h.",
     });
-    expect(gemini.calls).toHaveLength(3); // one per model of the default chain, no retries
+    expect(gemini.calls).toHaveLength(DEFAULT_MODEL_CHAIN.length); // one per model of the default chain, no retries
   });
 
   it("hint answers AI_QUOTA_EXHAUSTED with the hint message", async () => {

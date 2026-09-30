@@ -1,45 +1,37 @@
-import { hintOutputSchema, HINT_JSON_SCHEMA } from "../../contracts/ai-output.schemas.js";
-import { MAX_CLUE_LENGTH, MIN_CLUE_LENGTH, type HintRequest, type HintSuccess } from "../../contracts/api.schemas.js";
-import type { Category, Letter } from "../../contracts/game.schemas.js";
-import { leaksTerm } from "../../domain/hint-leak.js";
-import { matchesRecognised } from "../../domain/letter-match.js";
+import type { HintRequest, HintSuccess } from "../../contracts/api.schemas.js";
 import { generate, type GatewayDeps } from "../ai/gateway.js";
 import { BUDGETS } from "../ai/retry-policy.js";
-import type { AiResult, Validation } from "../ai/types.js";
-import { buildHintContent, HINT_PROMPT_VERSION, HINT_SYSTEM_INSTRUCTION } from "../prompts/hint.v1.js";
+import type { AiResult, ToolProposal, Validation } from "../ai/types.js";
+import { buildHintContent, HINT_PROMPT_VERSION, HINT_SYSTEM_INSTRUCTION } from "../prompts/hint.v2.js";
+import { declarationOf, HINT_TOOLS, showHintTool, type HintTool } from "../tools/show-hint.js";
 
 /**
- * GAME_SPEC §7. The described term is used only to validate the clue; it never
- * leaves the server.
+ * The server-side gate for the model's tool call (docs/TOOL_CONTRACT.md,
+ * W04 addendum §6.3). In order, and before the tool runs:
+ * exactly one call → allowlisted name → strict arguments → the request's own
+ * letter and category → read-only. Any refusal is final: no retry, no fallback.
  */
-export function validateHint(text: string, letter: Letter, category: Category): Validation<HintSuccess> {
-  let json: unknown;
-  try {
-    json = JSON.parse(text);
-  } catch {
-    return { ok: false, code: "invalid_output:json" };
+export function gateHintToolCall(
+  toolCalls: readonly ToolProposal[],
+  request: HintRequest,
+  registry: ReadonlyMap<string, HintTool> = HINT_TOOLS,
+): Validation<HintSuccess> {
+  if (toolCalls.length === 0) return { ok: false, code: "tool:missing_call" };
+  if (toolCalls.length > 1) return { ok: false, code: "tool:too_many_calls", notes: { toolCalls: toolCalls.length } };
+
+  const [proposal] = toolCalls as [ToolProposal];
+  const tool = registry.get(proposal.name);
+  if (!tool) return { ok: false, code: "tool:unknown" };
+
+  const args = tool.argsSchema.safeParse(proposal.args);
+  if (!args.success) return { ok: false, code: "tool:invalid_args" };
+
+  if (args.data.letter !== request.letter || args.data.category !== request.category) {
+    return { ok: false, code: "tool:out_of_scope" };
   }
+  if (tool.mode !== "read-only") return { ok: false, code: "tool:out_of_scope" };
 
-  const parsed = hintOutputSchema.safeParse(json);
-  if (!parsed.success) return { ok: false, code: "invalid_output:schema" };
-  const output = parsed.data;
-
-  if (output.noKnownTerm) return { ok: true, value: { ok: true, kind: "no_known_term", category } };
-
-  const term = output.term.trim();
-  const clue = output.clue.trim();
-  const names = [term, output.termEn.trim()].filter(Boolean);
-
-  const valid =
-    term !== "" &&
-    matchesRecognised(term, letter) &&
-    clue.length >= MIN_CLUE_LENGTH &&
-    clue.length <= MAX_CLUE_LENGTH &&
-    !leaksTerm(clue, names);
-
-  return valid
-    ? { ok: true, value: { ok: true, kind: "clue", category, clue } }
-    : { ok: false, code: "invalid_output:semantic", notes: { leak: leaksTerm(clue, names) ? 1 : 0 } };
+  return tool.execute(args.data);
 }
 
 export async function runHint(
@@ -54,11 +46,12 @@ export async function runHint(
       interactionId: deps.interactionId,
       systemInstruction: HINT_SYSTEM_INSTRUCTION,
       userContent: buildHintContent(request.letter, request.category),
-      responseJsonSchema: HINT_JSON_SCHEMA,
+      tool: declarationOf(showHintTool),
       temperature: 0.2,
       maxOutputTokens: 300,
       budget: BUDGETS.hint,
-      validate: (text) => validateHint(text, request.letter, request.category),
+      // Text next to the call is ignored: only the gated tool call can become a hint.
+      validate: (_text, toolCalls) => gateHintToolCall(toolCalls, request),
     },
     deps,
     signal,

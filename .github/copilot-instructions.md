@@ -4,7 +4,7 @@ This repository is governed by Spec Kit. Read these before your first edit:
 
 1. `.specify/memory/constitution.md` — the non-negotiable principles (I-VIII).
 2. `docs/GAME_SPEC.md` — the rulebook: letters, categories, answer acceptance, hints.
-3. `specs/001-singleplayer-vercel/` and `specs/002-ai-answer-check-and-hints/` — spec,
+3. `specs/001-singleplayer-vercel/`, `specs/002-ai-answer-check-and-hints/` and `specs/003-hint-tool-call/` — spec,
    plan, research, contracts, tasks and quickstart for the current features.
 
 Week 3's two-player rules (`Plan.md`, `.github/instructions/*`) are archived in

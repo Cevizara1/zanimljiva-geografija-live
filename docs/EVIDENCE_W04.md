@@ -24,8 +24,9 @@ Browser: verified result, or local score marked "nije provereno" + "Proveri pono
   `x-goog-api-key` header. `tests/security/bundle-secret.test.ts` builds the client with a
   sentinel key and proves no emitted file contains it.
 - **Provider / model**: Google Gemini free tier; chain `gemini-3.5-flash-lite` →
-  `gemini-3.1-flash-lite` → `gemini-3.6-flash` with per-instance rotation (research R3, R3b).
-  Browser never picks.
+  `gemini-3.1-flash-lite` → `gemini-3.6-flash` (live-checked) → `gemini-3.7-flash` →
+  `gemini-3.8-flash` → `gemini-3.5-flash` (appended by owner decision without a live check)
+  with per-instance rotation (research R3, R3b). Browser never picks.
 
 ## Contracts
 
@@ -46,8 +47,8 @@ or "nema poznatog pojma na ovo slovo" (tests T21, `check-round-validation.test.t
 | Failure | What happens | Test |
 | --- | --- | --- |
 | 503 from the primary twice | retry with jitter, then fallback model | T05 |
-| every attempt fails | ≤ 4 calls within 18 s → `AI_UNAVAILABLE` (retryable) → local score | T06 |
-| attempt hangs | aborted at min(8 s, remaining); next attempt uses what is left | T07 |
+| every attempt fails | ≤ 2 calls per model, all within the 18 s deadline → `AI_UNAVAILABLE` (retryable) → local score | T06 |
+| attempt hangs | aborted at min(6 s, remaining); next model gets what is left | T07 |
 | 429 with a long retry hint | not waited for; fallback immediately | T08 |
 | 401/403/400/refusal/truncated | 1 call, no retry, no fallback | T09-T13 |
 | not JSON / wrong schema / wrong items | rejected, never shown | T15-T17 |
@@ -90,6 +91,12 @@ game recorded; the pre-registered L1-L3 runs are still pending.
    so three models fit a check, and `thinkingLevel: "minimal"` for Flash models (0.96 s vs 3.1 s
    on a trivial call). `gemini-3.6-flash` passed its capability check (8/8); `gemini-3.5-flash`
    timed out and is held back.
+9. **Owner decisions (2026-09-30)**: (a) `gemini-3.7-flash`, `gemini-3.8-flash` and
+   `gemini-3.5-flash` appended to the chain without a live capability check — a documented
+   deviation from the reliability addendum §5; they are reached only after the checked models
+   fail and their output is validated the same way. (b) Hints use one forced `show_hint` tool
+   call, gated by the server before it runs, instead of a two-call tool loop (spec 003,
+   [TOOL_CONTRACT.md](TOOL_CONTRACT.md), [EVIDENCE_004.md](EVIDENCE_004.md)).
 
 ## Debug visibility
 

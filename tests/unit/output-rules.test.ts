@@ -1,10 +1,10 @@
 import { describe, expect, it } from "vitest";
 import {
   CHECK_ROUND_JSON_SCHEMA,
-  HINT_JSON_SCHEMA,
+  SHOW_HINT_PARAMETERS_SCHEMA,
   checkItemSchema,
   checkRoundOutputSchema,
-  hintOutputSchema,
+  showHintArgsSchema,
 } from "@contracts/ai-output.schemas";
 import { leaksTerm } from "@domain/hint-leak";
 import { editDistance, resembles } from "@domain/resemblance";
@@ -22,7 +22,7 @@ const item = {
 describe("model output schemas (T16)", () => {
   it("accept the contract example", () => {
     expect(checkRoundOutputSchema.safeParse({ items: [item] }).success).toBe(true);
-    expect(hintOutputSchema.safeParse({ term: "Dunav", termEn: "Danube", clue: "Reka kroz Beograd.", noKnownTerm: false }).success).toBe(true);
+    expect(showHintArgsSchema.safeParse({ letter: "D", category: "river", term: "Dunav", termEn: "Danube", clue: "Reka kroz Beograd.", noKnownTerm: false }).success).toBe(true);
   });
 
   it.each([
@@ -44,7 +44,7 @@ describe("model output schemas (T16)", () => {
   });
 
   it("reject an over-long hint clue", () => {
-    expect(hintOutputSchema.safeParse({ term: "Dunav", termEn: "", clue: "a".repeat(201), noKnownTerm: false }).success).toBe(false);
+    expect(showHintArgsSchema.safeParse({ letter: "D", category: "river", term: "Dunav", termEn: "", clue: "a".repeat(201), noKnownTerm: false }).success).toBe(false);
   });
 });
 
@@ -59,9 +59,13 @@ describe("JSON Schema sent to Gemini matches the zod schema (parity)", () => {
     expect([...schema.properties.category.enum]).toEqual([...checkItemSchema.shape.category.options]);
   });
 
-  it("hint: same fields, all required", () => {
-    expect(Object.keys(HINT_JSON_SCHEMA.properties).sort()).toEqual(Object.keys(hintOutputSchema.shape).sort());
-    expect([...HINT_JSON_SCHEMA.required].sort()).toEqual(Object.keys(hintOutputSchema.shape).sort());
+  it("show_hint tool: same fields, all required, same enums, no extras", () => {
+    const schema = SHOW_HINT_PARAMETERS_SCHEMA;
+    expect(Object.keys(schema.properties).sort()).toEqual(Object.keys(showHintArgsSchema.shape).sort());
+    expect([...schema.required].sort()).toEqual(Object.keys(showHintArgsSchema.shape).sort());
+    expect(schema.additionalProperties).toBe(false);
+    expect([...schema.properties.letter.enum]).toEqual([...showHintArgsSchema.shape.letter.options]);
+    expect([...schema.properties.category.enum]).toEqual([...showHintArgsSchema.shape.category.options]);
   });
 
   it("uses only the JSON Schema keywords Gemini documents", () => {
@@ -76,7 +80,7 @@ describe("JSON Schema sent to Gemini matches the zod schema (parity)", () => {
       }
     };
     walk(CHECK_ROUND_JSON_SCHEMA);
-    walk(HINT_JSON_SCHEMA);
+    walk(SHOW_HINT_PARAMETERS_SCHEMA);
   });
 });
 

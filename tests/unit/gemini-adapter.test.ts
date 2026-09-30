@@ -67,6 +67,25 @@ describe("Gemini adapter — the request it sends", () => {
     expect(JSON.parse(String(captured[0]!.init.body)).generationConfig.thinkingConfig).toEqual({ thinkingLevel: "low" });
   });
 
+  it("with a tool: declares it, forces it, and drops the JSON response format", async () => {
+    const { impl, captured } = fakeFetch(() => ok(reply("{}")));
+    const tool = { name: "show_hint", description: "Shows a clue.", parametersJsonSchema: { type: "object" } };
+    await createGeminiAdapter({ apiKey: KEY, fetchImpl: impl }).generate(call({ responseJsonSchema: undefined, tool }));
+    const body = JSON.parse(String(captured[0]!.init.body));
+
+    expect(body.tools).toEqual([{ functionDeclarations: [tool] }]);
+    expect(body.toolConfig).toEqual({ functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["show_hint"] } });
+    expect(body.generationConfig).toEqual({ temperature: 0, maxOutputTokens: 1500 });
+  });
+
+  it("without a tool: sends no tools at all", async () => {
+    const { impl, captured } = fakeFetch(() => ok(reply("{}")));
+    await createGeminiAdapter({ apiKey: KEY, fetchImpl: impl }).generate(call());
+    const body = JSON.parse(String(captured[0]!.init.body));
+    expect(body).not.toHaveProperty("tools");
+    expect(body).not.toHaveProperty("toolConfig");
+  });
+
   it("passes the abort signal through", async () => {
     const controller = new AbortController();
     const { impl, captured } = fakeFetch(() => ok(reply("{}")));
@@ -90,6 +109,20 @@ describe("Gemini adapter — normalizing what comes back", () => {
   it("joins text parts and skips thought summaries", async () => {
     const body = { candidates: [{ finishReason: "STOP", content: { parts: [{ text: "thinking…", thought: true }, { text: '{"a"' }, { text: ":1}" }] } }] };
     expect(await run(() => ok(body))).toEqual({ ok: true, text: '{"a":1}' });
+  });
+
+  it("normalizes function calls to { name, args } without judging them", async () => {
+    const body = {
+      candidates: [{
+        finishReason: "STOP",
+        content: { parts: [{ functionCall: { name: "show_hint", args: { letter: "D" } }, thoughtSignature: "opaque" }, { functionCall: { name: 7 } }] },
+      }],
+    };
+    expect(await run(() => ok(body))).toEqual({
+      ok: true,
+      text: "",
+      toolCalls: [{ name: "show_hint", args: { letter: "D" } }, { name: "", args: {} }],
+    });
   });
 
   it.each([

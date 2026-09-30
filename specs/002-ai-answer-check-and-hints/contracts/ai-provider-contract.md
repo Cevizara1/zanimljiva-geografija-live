@@ -2,7 +2,7 @@
 
 ```text
 Provider:   Google Gemini API (free tier), REST v1beta generateContent, plain fetch (no SDK)
-Models:     GEMINI_MODEL_CHAIN, default "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash"
+Models:     GEMINI_MODEL_CHAIN, default "gemini-3.5-flash-lite,gemini-3.1-flash-lite,gemini-3.6-flash,gemini-3.7-flash,gemini-3.8-flash,gemini-3.5-flash"
             (stable IDs only; allowlisted by config; the browser never selects a model)
             one model per request; the second only after a transient failure of the first
 Why enough: short classification + well-known examples in Serbian/English; lite models only
@@ -22,10 +22,12 @@ is sent: no IP, no identifiers, no earlier rounds.
 
 ## Generation config
 
-| Field | check-round | hint |
+| Field | check-round | hint (since hint.v2, spec 003) |
 | --- | --- | --- |
-| `responseMimeType` | `application/json` | `application/json` |
-| `responseJsonSchema` | check schema below | hint schema below |
+| `responseMimeType` | `application/json` | — (not sent) |
+| `responseJsonSchema` | check schema below | — (not sent) |
+| `tools` | — | one `functionDeclarations` entry: `show_hint` with `parametersJsonSchema` ([TOOL_CONTRACT.md](../../../docs/TOOL_CONTRACT.md)) |
+| `toolConfig` | — | `functionCallingConfig: { mode: "ANY", allowedFunctionNames: ["show_hint"] }` (forced) |
 | `temperature` | 0 | 0.2 |
 | `maxOutputTokens` | 1,500 | 300 |
 | `thinkingConfig` | only if `GEMINI_THINKING_LEVEL` is set (capability-checked) | same |
@@ -61,7 +63,9 @@ check-round:
 }
 ```
 
-hint:
+hint: **superseded by spec 003** — the hint is now the arguments of a forced `show_hint` tool
+call (`letter`, `category`, `term`, `termEn`, `clue`, `noKnownTerm`); schema and gate in
+[TOOL_CONTRACT.md](../../../docs/TOOL_CONTRACT.md). The v1 JSON reply below is kept for history.
 
 ```json
 {

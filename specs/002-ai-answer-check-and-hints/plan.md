@@ -23,6 +23,20 @@ when every model is out of quota; Flash models get `thinkingLevel: "minimal"`. C
 `gemini-3.5-flash-lite → gemini-3.1-flash-lite → gemini-3.6-flash`; `gemini-3.5-flash` (the
 fourth model of plan A) is held back because its capability check timed out.
 
+**Amendment (owner decision, 2026-09-30)**: the chain is extended to
+`… → gemini-3.6-flash → gemini-3.7-flash → gemini-3.8-flash → gemini-3.5-flash` **without** a
+live capability check for the last three. Deviation from the W04 reliability addendum §5
+("svaki model proveriti kroz isti realni flow"), accepted because the unchecked models sit after
+the checked ones (reached only when those fail) and their output passes the same validation;
+the worst case is the same local "nije provereno" result. Risks: a model that rejects
+`thinkingLevel: "minimal"` answers 400, which is terminal (no further fallback); a slow model
+spends up to 6 s of the 18 s deadline.
+
+**Decision (owner, 2026-09-30)**: no two-call tool loop for hints; the owner keeps one call per
+hint. **Superseded the same day by spec 003**: the hint is a single forced `show_hint` tool call,
+gated by the server (allowlist, strict arguments, scope, read-only) — see
+[specs/003-hint-tool-call](../003-hint-tool-call/spec.md) and `docs/TOOL_CONTRACT.md`.
+
 ## Summary
 
 Two AI operations behind two stateless endpoints, built to the Week 4 reliability model:

@@ -1,6 +1,6 @@
 import { classifyHttpStatus } from "./classify.js";
 import { isDailyQuota, parseRetryAfterMs } from "./retry-policy.js";
-import type { AdapterResult, ModelCall, ProviderAdapter, TokenUsage } from "./types.js";
+import type { AdapterResult, ModelCall, ProviderAdapter, TokenUsage, ToolProposal } from "./types.js";
 
 /*
  * Gemini REST wire format ↔ our provider-neutral call (research R1). Plain
@@ -12,7 +12,7 @@ export const GEMINI_BASE_URL = "https://generativelanguage.googleapis.com";
 
 const REFUSAL_FINISH = new Set(["SAFETY", "PROHIBITED_CONTENT", "BLOCKLIST", "SPII", "RECITATION", "IMAGE_SAFETY"]);
 
-type GeminiPart = { text?: unknown; thought?: unknown };
+type GeminiPart = { text?: unknown; thought?: unknown; functionCall?: { name?: unknown; args?: unknown } };
 type GeminiResponse = {
   promptFeedback?: { blockReason?: unknown };
   candidates?: Array<{ finishReason?: unknown; content?: { parts?: GeminiPart[] } }>;
@@ -37,12 +37,20 @@ function usageOf(body: GeminiResponse): TokenUsage | undefined {
 }
 
 export function buildGeminiBody(call: Omit<ModelCall, "model" | "signal">): object {
+  // A declared tool is forced (mode ANY, only that name): the reply is a functionCall,
+  // so there is no JSON response format to ask for.
+  const { tool } = call;
   return {
     systemInstruction: { parts: [{ text: call.systemInstruction }] },
     contents: [{ role: "user", parts: [{ text: call.userContent }] }],
+    ...(tool
+      ? {
+          tools: [{ functionDeclarations: [{ name: tool.name, description: tool.description, parametersJsonSchema: tool.parametersJsonSchema }] }],
+          toolConfig: { functionCallingConfig: { mode: "ANY", allowedFunctionNames: [tool.name] } },
+        }
+      : {}),
     generationConfig: {
-      responseMimeType: "application/json",
-      responseJsonSchema: call.responseJsonSchema,
+      ...(tool ? {} : { responseMimeType: "application/json", responseJsonSchema: call.responseJsonSchema }),
       temperature: call.temperature,
       maxOutputTokens: call.maxOutputTokens,
       // Sent only when configured: an option a model rejects would be a permanent 400.
@@ -114,14 +122,22 @@ export function createGeminiAdapter(options: {
       if (finish === "MAX_TOKENS") return { ok: false, error: { code: "invalid_output:truncated" } };
 
       // Thought summaries are not the answer.
-      const text = (candidate.content?.parts ?? [])
+      const parts = candidate.content?.parts ?? [];
+      const text = parts
         .filter((part) => typeof part.text === "string" && part.thought !== true)
         .map((part) => part.text as string)
         .join("");
-      if (text.trim() === "") return { ok: false, error: { code: "invalid_output:empty" } };
+      // Tool calls are normalized to { name, args } and passed on unjudged: the gate decides.
+      const toolCalls: ToolProposal[] = parts
+        .filter((part) => part.functionCall && typeof part.functionCall === "object")
+        .map((part) => ({
+          name: typeof part.functionCall!.name === "string" ? part.functionCall!.name : "",
+          args: part.functionCall!.args ?? {},
+        }));
+      if (text.trim() === "" && toolCalls.length === 0) return { ok: false, error: { code: "invalid_output:empty" } };
 
       const usage = usageOf(body);
-      return { ok: true, text, ...(usage ? { usage } : {}) };
+      return { ok: true, text, ...(toolCalls.length ? { toolCalls } : {}), ...(usage ? { usage } : {}) };
     },
   };
 }

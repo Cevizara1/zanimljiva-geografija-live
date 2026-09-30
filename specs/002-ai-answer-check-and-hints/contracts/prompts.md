@@ -1,12 +1,19 @@
 # Prompts v1 (W04 `AI_FEATURE_PROMPT`)
 
-The source of truth is `src/server/prompts/check-round.v2.ts` and `hint.v1.ts`; this file is
+The source of truth is `src/server/prompts/check-round.v2.ts` and `hint.v2.ts`; this file is
 their reviewed copy. Implemented v1 uses `""` (not null) for "no value" in every output field,
 because Gemini's `responseJsonSchema` subset has no nullable types (see ai-provider-contract.md). Changing a prompt means a new version id (`check-round.v2`), a note in
 `docs/AI_EVALS.md`, and re-running the live eval. Prompts contain no secret and no player data;
 player data goes only into the user content as JSON.
 
 ## Changelog
+
+- **hint.v2 (2026-09-30, spec 003)** — the answer is a call to the `show_hint` tool instead of
+  a JSON reply. Added after the first paragraph: *Answer by calling the show_hint tool exactly
+  once. Copy "letter" and "category" from the user message unchanged. Do not reply with text.*
+  "Return" became "Pass"; the closing "Reply only with JSON matching the schema." was removed.
+  Content rules (best-known term, clue ≤ 200 characters, no part of the term) are unchanged.
+  Not live-evaluated yet: the owner checks it on the deployed site.
 
 - **check-round.v2 (2026-09-30)** — one sentence added after the examples paragraph:
   *"noKnownTerm" is about the category and the letter only — it says nothing about the player's

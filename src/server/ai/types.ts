@@ -26,6 +26,12 @@ export type AiFailureCode =
   | "invalid_output:json"
   | "invalid_output:schema"
   | "invalid_output:semantic"
+  // A proposed tool call refused by the server-side gate (docs/TOOL_CONTRACT.md). Terminal.
+  | "tool:missing_call"
+  | "tool:too_many_calls"
+  | "tool:unknown"
+  | "tool:invalid_args"
+  | "tool:out_of_scope"
   | "cancelled"
   | "deadline_exhausted";
 
@@ -33,8 +39,14 @@ export type TokenUsage = { inputTokens?: number; outputTokens?: number; totalTok
 
 export type ProviderError = { code: AiFailureCode; httpStatus?: number; retryAfterMs?: number };
 
+/** A tool call the model proposed, normalized from the wire format. A proposal, not a permission. */
+export type ToolProposal = { name: string; args: unknown };
+
+/** A function the model must call; declared to the provider, gated by us. */
+export type ToolDeclaration = { name: string; description: string; parametersJsonSchema: object };
+
 export type AdapterResult =
-  | { ok: true; text: string; usage?: TokenUsage }
+  | { ok: true; text: string; toolCalls?: ToolProposal[]; usage?: TokenUsage }
   | { ok: false; error: ProviderError };
 
 /** One provider call, fully specified by the gateway. */
@@ -42,7 +54,10 @@ export type ModelCall = {
   model: string;
   systemInstruction: string;
   userContent: string;
-  responseJsonSchema: object;
+  /** Structured JSON output; used when no tool is declared. */
+  responseJsonSchema?: object;
+  /** One tool the model must call (forced); replaces the JSON response format. */
+  tool?: ToolDeclaration;
   temperature: number;
   maxOutputTokens: number;
   thinkingLevel: ThinkingLevel | null;
@@ -71,7 +86,7 @@ export type ValidationNotes = Record<string, number>;
 
 export type Validation<T> =
   | { ok: true; value: T; notes?: ValidationNotes }
-  | { ok: false; code: Extract<AiFailureCode, `invalid_output:${string}`>; notes?: ValidationNotes };
+  | { ok: false; code: Extract<AiFailureCode, `invalid_output:${string}` | `tool:${string}`>; notes?: ValidationNotes };
 
 export type AiRequest<T> = {
   operation: AiOperation;
@@ -79,12 +94,13 @@ export type AiRequest<T> = {
   interactionId: string;
   systemInstruction: string;
   userContent: string;
-  responseJsonSchema: object;
+  responseJsonSchema?: object;
+  tool?: ToolDeclaration;
   temperature: number;
   maxOutputTokens: number;
   budget: RetryBudget;
-  /** Parse → schema → semantic validation of the model's text (W04 PDF §8). */
-  validate(text: string): Validation<T>;
+  /** Parse → schema → semantic validation of the model's text or proposed tool calls (W04 PDF §8). */
+  validate(text: string, toolCalls: readonly ToolProposal[]): Validation<T>;
 };
 
 export type ProviderAttempt = {

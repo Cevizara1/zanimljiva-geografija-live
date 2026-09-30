@@ -58,7 +58,9 @@ Browser ── POST /api/check-round ──▶ Vercel function ──▶ Gemini 
 ```
 
 - One AI request per round (check + examples), plus one per spent hint — at most 8 per game.
-- Models: `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-3.6-flash`. A model that
+- Models: `gemini-3.5-flash-lite` → `gemini-3.1-flash-lite` → `gemini-3.6-flash` (live-checked),
+  then `gemini-3.7-flash` → `gemini-3.8-flash` → `gemini-3.5-flash` (not live-checked; reached
+  only when the first three fail). Only one model is called per attempt. A model that
   times out, errors or runs out of its daily quota is skipped by the next requests (quota: until
   the daily reset, ~9h in Serbia). When every model is out of quota the game says so. Per-attempt
   timeout, one shared deadline, at most two attempts per model, never two models at once.
@@ -66,7 +68,8 @@ Browser ── POST /api/check-round ──▶ Vercel function ──▶ Gemini 
   term exists and belongs to its category.
 - Details: [AI provider contract](specs/002-ai-answer-check-and-hints/contracts/ai-provider-contract.md),
   [HTTP API](specs/002-ai-answer-check-and-hints/contracts/http-api.md),
-  [evidence](docs/EVIDENCE_W04.md).
+  [tool contract](docs/TOOL_CONTRACT.md) (hints are one gated `show_hint` tool call),
+  [evidence](docs/EVIDENCE_W04.md), [evidence 004](docs/EVIDENCE_004.md).
 
 ## Documentation
 
@@ -76,6 +79,7 @@ Browser ── POST /api/check-round ──▶ Vercel function ──▶ Gemini 
 | [.specify/memory/constitution.md](.specify/memory/constitution.md) | Engineering principles |
 | [specs/001-singleplayer-vercel](specs/001-singleplayer-vercel/) | Single-player game on Vercel: spec, plan, tasks |
 | [specs/002-ai-answer-check-and-hints](specs/002-ai-answer-check-and-hints/) | AI check and hints: spec, plan, contracts, tasks |
+| [specs/003-hint-tool-call](specs/003-hint-tool-call/) | Hint as one gated tool call (Session 004) |
 | [docs/README.md](docs/README.md) | Where each Week 4 artifact lives |
 | [docs/archive/w03/](docs/archive/w03/) | The Week 3 two-player version's plan and rules |
 

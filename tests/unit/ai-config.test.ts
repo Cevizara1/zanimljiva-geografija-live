@@ -12,8 +12,11 @@ describe("loadAiConfig", () => {
   it("needs only the key; the chain defaults to plan A (lite first, Flash as last resort)", () => {
     const config = loadAiConfig({ GEMINI_API_KEY: KEY });
     expect(config).toMatchObject({ configured: true, modelChain: DEFAULT_MODEL_CHAIN, thinkingLevel: null });
-    // gemini-3.5-flash is held back until its live capability check passes.
-    expect(DEFAULT_MODEL_CHAIN).toEqual(["gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash"]);
+    // Tested models first; the last three are unchecked and only reached when those fail.
+    expect(DEFAULT_MODEL_CHAIN).toEqual([
+      "gemini-3.5-flash-lite", "gemini-3.1-flash-lite", "gemini-3.6-flash",
+      "gemini-3.7-flash", "gemini-3.8-flash", "gemini-3.5-flash",
+    ]);
   });
 
   it("parses, trims and de-duplicates an overriding chain", () => {

@@ -1,10 +1,11 @@
 import { z } from "zod";
-import { CATEGORIES, categorySchema } from "./game.schemas.js";
+import { CATEGORIES, LETTERS, categorySchema, letterSchema } from "./game.schemas.js";
 
 /*
  * What the model must return (contracts/ai-provider-contract.md). Two fences:
- * the JSON Schema below is sent to Gemini as `responseJsonSchema`; the zod
- * schemas re-validate the reply here, including limits Gemini cannot express.
+ * the JSON Schemas below are sent to Gemini (`responseJsonSchema` for the round
+ * check, `parametersJsonSchema` of the hint tool); the zod schemas re-validate
+ * the reply here, including limits Gemini cannot express.
  *
  * Gemini documents only a subset of JSON Schema (type, properties, required,
  * additionalProperties, enum, items, min/maxItems, description), with no
@@ -41,15 +42,22 @@ export const checkRoundOutputSchema = z
   .strict();
 export type CheckRoundOutput = z.infer<typeof checkRoundOutputSchema>;
 
-export const hintOutputSchema = z
+/**
+ * Arguments of the `show_hint` tool the model must call (docs/TOOL_CONTRACT.md).
+ * Strict: an unknown key such as `executeCode` rejects the whole call before
+ * the tool runs. `letter` and `category` must repeat the request (scope check).
+ */
+export const showHintArgsSchema = z
   .object({
+    letter: letterSchema,
+    category: categorySchema,
     term: name,
     termEn: name,
     clue: z.string().max(MAX_RAW_CLUE_LENGTH).refine(noControlCharacters, "control character"),
     noKnownTerm: z.boolean(),
   })
   .strict();
-export type HintOutput = z.infer<typeof hintOutputSchema>;
+export type ShowHintArgs = z.infer<typeof showHintArgsSchema>;
 
 /* ------------------------------------------------ JSON Schemas for Gemini */
 
@@ -85,14 +93,17 @@ export const CHECK_ROUND_JSON_SCHEMA = {
   additionalProperties: false,
 } as const;
 
-export const HINT_JSON_SCHEMA = {
+/** `parametersJsonSchema` of the `show_hint` function declaration. */
+export const SHOW_HINT_PARAMETERS_SCHEMA = {
   type: "object",
   properties: {
+    letter: { type: "string", enum: [...LETTERS], description: "The round letter, copied from the request." },
+    category: { type: "string", enum: [...CATEGORIES], description: "The category, copied from the request." },
     term: str('The term in Serbian Latin, or "".'),
     termEn: str('The English name, or "".'),
     clue: str('One or two short Serbian sentences that describe the term without naming it, or "".'),
     noKnownTerm: { type: "boolean" },
   },
-  required: ["term", "termEn", "clue", "noKnownTerm"],
+  required: ["letter", "category", "term", "termEn", "clue", "noKnownTerm"],
   additionalProperties: false,
 } as const;

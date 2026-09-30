@@ -8,6 +8,8 @@ export type GeminiRequestBody = {
   systemInstruction: { parts: Array<{ text: string }> };
   contents: Array<{ parts: Array<{ text: string }> }>;
   generationConfig: Record<string, unknown>;
+  tools?: Array<{ functionDeclarations: Array<{ name: string; description: string; parametersJsonSchema: object }> }>;
+  toolConfig?: { functionCallingConfig: { mode: string; allowedFunctionNames: string[] } };
 };
 
 export const TEST_KEY = "AIzaSy-SENTINEL-test-key-000000000000";
@@ -23,6 +25,17 @@ export function geminiText(text: string, finishReason = "STOP"): Response {
 }
 
 export const geminiJson = (value: unknown): Response => geminiText(JSON.stringify(value));
+
+/** A reply whose only content is function calls (Gemini `functionCall` parts). */
+export function geminiToolCalls(...calls: Array<{ name: string; args: unknown }>): Response {
+  return new Response(
+    JSON.stringify({
+      candidates: [{ finishReason: "STOP", content: { parts: calls.map((functionCall) => ({ functionCall })) } }],
+      usageMetadata: { promptTokenCount: 700, candidatesTokenCount: 60, totalTokenCount: 760 },
+    }),
+    { status: 200, headers: { "content-type": "application/json" } },
+  );
+}
 
 export const geminiStatus = (status: number): Response =>
   new Response(JSON.stringify({ error: { code: status, message: "raw provider text that must not leak" } }), { status });

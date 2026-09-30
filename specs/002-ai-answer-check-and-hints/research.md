@@ -73,6 +73,10 @@ integracija" PDF, "Integracija AI API-ja" addendum PDF, the two tables in
 - Capability checks through the real flow (L1): `gemini-3.6-flash` passed (2.5 s, 8/8 verdicts
   on round S) with `thinkingLevel: "minimal"`; without it the model spent ≈75 thought tokens and
   3.1 s even on "ok". `gemini-3.5-flash` timed out (6 s; 16.8 s for "ok") and is held back.
+- Owner amendment (2026-09-30): `gemini-3.7-flash`, `gemini-3.8-flash` and `gemini-3.5-flash`
+  appended to the chain without a capability check (plan.md amendment). A longer chain costs
+  nothing while an earlier model answers; it helps when earlier models are out of daily quota
+  (skipped without a call) or fail fast (429/404/5xx). Only timeouts spend the deadline.
 - Rejected: sending the same request to several models in parallel (fastest, but doubles quota
   use and the W04 PDF forbids it).
 

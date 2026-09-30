@@ -9,15 +9,21 @@
  * models only as a last resort. Every model has its own free-tier quota, so a
  * longer chain also means more requests per day. research R3.
  *
- * gemini-3.5-flash, the fourth model of plan A, is held back: its capability
- * check through the real flow timed out (6 s) on 2026-09-30, and W04 admits a
- * fallback only after it passes that check. Re-run
- * `npm run smoke:live -- capability gemini-3.5-flash` and add it back when it passes.
+ * The first three passed a live capability check. The last three are added by
+ * owner decision (2026-09-30) WITHOUT that check, a documented deviation from
+ * the W04 rule "svaki model proveriti kroz isti realni flow": they sit behind
+ * the tested models, so they are reached only when those fail, and whatever
+ * they return still goes through the same parse, schema and semantic checks.
+ * gemini-3.5-flash is last because its check timed out (6 s). Verify any of
+ * them with `npm run smoke:live -- capability <model>`.
  */
 export const DEFAULT_MODEL_CHAIN = [
   "gemini-3.5-flash-lite",
   "gemini-3.1-flash-lite",
   "gemini-3.6-flash",
+  "gemini-3.7-flash",
+  "gemini-3.8-flash",
+  "gemini-3.5-flash",
 ] as const;
 
 export const THINKING_LEVELS = ["minimal", "low", "medium", "high"] as const;

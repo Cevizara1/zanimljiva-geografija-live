@@ -114,7 +114,7 @@ export async function generate<T>(
         model,
         systemInstruction: request.systemInstruction,
         userContent: request.userContent,
-        responseJsonSchema: request.responseJsonSchema,
+        ...(request.tool ? { tool: request.tool } : { responseJsonSchema: request.responseJsonSchema ?? {} }),
         temperature: request.temperature,
         maxOutputTokens: request.maxOutputTokens,
         thinkingLevel: deps.thinkingLevel ?? defaultThinkingLevel(model),
@@ -126,8 +126,9 @@ export async function generate<T>(
         deps.debug?.({ operation: request.operation, promptVersion: request.promptVersion, n, model, kind, latencyMs, sent: request.userContent, reply, result: outcome });
 
       if (result.ok) {
-        const validation = request.validate(result.text);
-        debug(result.text, validation.ok ? "ok" : validation.code);
+        const toolCalls = result.toolCalls ?? [];
+        const validation = request.validate(result.text, toolCalls);
+        debug(toolCalls.length ? JSON.stringify(toolCalls) : result.text, validation.ok ? "ok" : validation.code);
         deps.health?.report(model, "success", now());
         if (validation.ok) {
           attempts.push({ n, provider: "gemini", model, kind, status: "success", latencyMs });
@@ -137,7 +138,7 @@ export async function generate<T>(
             validation.notes,
           );
         }
-        // Malformed output is not a transport problem: no blind retry, no fallback.
+        // Malformed output or a refused tool call is not a transport problem: no blind retry, no fallback.
         attempts.push({ n, provider: "gemini", model, kind, status: "failure", errorClass: validation.code, latencyMs });
         return fail(validation.code, validation.notes);
       }
