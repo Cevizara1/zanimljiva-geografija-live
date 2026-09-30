@@ -35,9 +35,11 @@ fallback — is present and tested.
 
 ## Live evidence
 
-**None yet.** By owner decision no live call was made before the deploy; the owner plays on the
-deployed site. Record here: date, commit, model, whether the hint appeared, and the
-`ai.interaction` line from the Vercel logs (outcome, attempts, latency).
+By owner decision no live call was made before the deploy; the owner plays on the deployed site.
+
+| Date | Commit | Model | Result | Latency | Reading |
+| --- | --- | --- | --- | --- | --- |
+| 2026-09-30 | 73ac37a | gemini-3.5-flash-lite | `invalid_output:semantic`, `leak: 0`, 1 attempt, no fallback | 980 ms | **The tool call works**: the lite model accepted the forced function declaration and its call passed count, allowlist, strict arguments and scope. The clue then failed a GAME_SPEC §7 rule other than the leak rule; the notes did not say which. Follow-up commit: the notes now carry 0/1 flags per rule (`termEmpty`, `wrongLetter`, `clueShort`, `clueLong`, `leak`). |
 
 ## Open
 

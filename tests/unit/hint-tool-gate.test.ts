@@ -87,6 +87,15 @@ describe("show_hint execution — the final output is validated (GAME_SPEC §7)"
     });
   });
 
+  it("telemetry notes name the failed rule as flags, never the content", () => {
+    const result = executeShowHint({ ...GOOD, letter: "D", category: "river", term: "Sava", termEn: "Sava", clue: "Reka." });
+    expect(result).toEqual({
+      ok: false,
+      code: "invalid_output:semantic",
+      notes: { termEmpty: 0, wrongLetter: 1, clueShort: 1, clueLong: 0, leak: 0 },
+    });
+  });
+
   it("no known term is a valid answer", () => {
     expect(executeShowHint({ ...GOOD, letter: "D", category: "river", term: "", termEn: "", clue: "", noKnownTerm: true })).toEqual({
       ok: true,

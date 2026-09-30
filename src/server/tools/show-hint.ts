@@ -34,18 +34,18 @@ export function executeShowHint(args: ShowHintArgs): Validation<HintSuccess> {
   const term = args.term.trim();
   const clue = args.clue.trim();
   const names = [term, args.termEn.trim()].filter(Boolean);
-  const leak = leaksTerm(clue, names);
+  // Which rule failed, as 0/1 flags only: telemetry never carries the term or the clue.
+  const failed = {
+    termEmpty: term === "" ? 1 : 0,
+    wrongLetter: term !== "" && !matchesRecognised(term, args.letter) ? 1 : 0,
+    clueShort: clue.length < MIN_CLUE_LENGTH ? 1 : 0,
+    clueLong: clue.length > MAX_CLUE_LENGTH ? 1 : 0,
+    leak: leaksTerm(clue, names) ? 1 : 0,
+  };
 
-  const valid =
-    term !== "" &&
-    matchesRecognised(term, args.letter) &&
-    clue.length >= MIN_CLUE_LENGTH &&
-    clue.length <= MAX_CLUE_LENGTH &&
-    !leak;
-
-  return valid
+  return Object.values(failed).every((flag) => flag === 0)
     ? { ok: true, value: { ok: true, kind: "clue", category: args.category, clue } }
-    : { ok: false, code: "invalid_output:semantic", notes: { leak: leak ? 1 : 0 } };
+    : { ok: false, code: "invalid_output:semantic", notes: failed };
 }
 
 export const showHintTool: HintTool = {
